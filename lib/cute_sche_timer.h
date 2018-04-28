@@ -47,6 +47,7 @@ public:
 
 private:
 	u64 register_timer_i(i32 interval, i32 repeat_cnt, std::shared_ptr<timer_handler> handler, u64 timer_id, i32 curr_wrap_cnt = 0);
+	u64 now();
 
 private:
 	class timer_node
@@ -98,6 +99,7 @@ private:
 	timer_wheel_t						timer_wheel_;				
 	timer_wheel_idx_map_t				timer_wheel_idx_map_;		// record mapping for timer_id to timer_wheel_id 
 	u32									curr_wheel_idx_;
+	u64									last_dispatch_;
 
 private:
 	static u64							timer_id_seed_;

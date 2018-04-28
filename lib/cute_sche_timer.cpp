@@ -7,6 +7,7 @@ u64 cute_sche_timer::timer_id_seed_ = cute_sche_timer::BASE_TIMER_ID_SEED;
 
 cute_sche_timer::cute_sche_timer()
 	: curr_wheel_idx_(0)
+	, last_dispatch_(now())
 {
 }
 
@@ -76,6 +77,11 @@ i32 cute_sche_timer::remove_timer(u64 id)
 
 void cute_sche_timer::dispatch(i32 & dispatched_cnt)
 {
+	u64 now = this->now();
+	if (now - this->last_dispatch_ < MIN_INTERVAL_THRESHOLD)
+		return;
+
+	this->last_dispatch_ = now;
 	std::list<u64> to_delete_id_list;
 	std::list<timer_node> reschedule_list;
 	timer_wheel_t::reference timer_node_map = this->timer_wheel_[this->curr_wheel_idx_];
@@ -128,5 +134,10 @@ void cute_sche_timer::dispatch(i32 & dispatched_cnt)
 	this->curr_wheel_idx_ = (++this->curr_wheel_idx_) % MAX_TIMER_WHEEL_SIZE;
 }
 
-
+u64 cute_sche_timer::now()
+{
+	using namespace std::chrono;
+	auto now = high_resolution_clock::now();
+	return duration_cast<milliseconds>(now.time_since_epoch()).count();
+}
 
