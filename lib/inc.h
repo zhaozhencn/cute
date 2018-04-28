@@ -26,6 +26,7 @@
 #include <netdb.h>
 #include <sys/epoll.h>  
 #include <string.h>
+#include <signal.h>
 
 #endif
 

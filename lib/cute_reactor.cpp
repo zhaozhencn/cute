@@ -16,8 +16,16 @@ cute_reactor::~cute_reactor()
 i32 cute_reactor::init()
 {
 	WRITE_INFO_LOG("cute_reactor::init");
+	
+	// ignore SIG_PIPE broken signal
+	struct sigaction sa;
+	sa.sa_handler = SIG_IGN;
+	sa.sa_flags = 0;
+	if ((sigemptyset(&sa.sa_mask) == -1) || sigaction(SIGPIPE, &sa, 0) == -1)
+		return CUTE_ERR;
+
 	this->epoll_.open();
-	return 0;
+	return CUTE_SUCC;
 }
 
 void cute_reactor::fini()
