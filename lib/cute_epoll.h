@@ -51,6 +51,10 @@ public:
 private:
 	i32				epfd_;
 	epoll_event		events_[MAX_EPOLL_EVENTS];
+	
+private:
+	std::mutex		mutex_;
+
 };
 
 

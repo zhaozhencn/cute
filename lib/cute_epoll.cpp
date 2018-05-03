@@ -31,6 +31,7 @@ void cute_epoll::close()
 
 i32 cute_epoll::register_socket(i32 fd)
 {
+	std::lock_guard<std::mutex> guard(this->mutex_);
 	if (CUTE_INVALID_FD == this->epfd_)
 		return CUTE_ERR;
 
@@ -43,6 +44,7 @@ i32 cute_epoll::register_socket(i32 fd)
 
 i32 cute_epoll::remove_socket(i32 fd)
 {
+	std::lock_guard<std::mutex> guard(this->mutex_);
 	if (CUTE_INVALID_FD == this->epfd_)
 		return CUTE_ERR;
 
@@ -54,6 +56,7 @@ i32 cute_epoll::remove_socket(i32 fd)
 
 i32 cute_epoll::wait(i32 wait_for_mill_secs, std::list<cute_epoll_event>& event_list)
 {
+	std::lock_guard<std::mutex> guard(this->mutex_);
 	if (CUTE_INVALID_FD == this->epfd_)
 		return CUTE_ERR;
 

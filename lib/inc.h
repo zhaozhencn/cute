@@ -14,7 +14,7 @@
 #include <map>
 #include <mutex>
 #include <array>
-
+#include <atomic>
 
 // system
 #include <unistd.h>  

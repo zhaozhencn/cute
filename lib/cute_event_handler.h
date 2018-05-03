@@ -3,7 +3,6 @@
 
 #include "inc.h"
 #include "cute_socket.h"
-class cute_socket;
 
 class cute_event_handler : public std::enable_shared_from_this<cute_event_handler>
 {

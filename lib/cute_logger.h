@@ -15,6 +15,7 @@ public:
 	template<typename T>
 	void write(T&& log, i32 level)
 	{
+		std::lock_guard<std::mutex> guard(this->mutex_);
 		if (level >= this->level_)
 			std::cout << std::forward<T>(log) << std::endl;
 	}
@@ -38,7 +39,8 @@ public:
 	}
 
 private:
-	i32 level_;
+	i32			level_;
+	std::mutex	mutex_;
 };
 
 
@@ -46,9 +48,9 @@ template<typename T>
 class singleton
 {
 public:
-	static T inst()
+	static T* inst()
 	{
-		static T ins = T();
+		static T* ins = new T();
 		return ins;
 	}
 };
@@ -59,10 +61,10 @@ typedef singleton<cute_logger> cute_logger_singleton;
 #define WRITE_LOG(log, level) \
 	{	\
 		std::ostringstream os; \
-		os << "Level: " << cute_logger_singleton::inst().get_level_desc(level) << std::endl;	\
+		os << "Level: " << cute_logger_singleton::inst()->get_level_desc(level) << std::endl;	\
 		os << "File: " << __FILE__  <<  " Line: " << __LINE__  << " Function: " << __FUNCTION__ << std::endl;	\
 		os << "Log: " << log << std::endl; \
-		cute_logger_singleton::inst().write(os.str(), level); \
+		cute_logger_singleton::inst()->write(os.str(), level); \
 	}
 
 

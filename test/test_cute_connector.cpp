@@ -24,9 +24,7 @@ public:
 			return CUTE_ERR;
 		
 		// add some logic
-		std::shared_ptr<cute_event_handler> self_1 = shared_from_this();
-		std::shared_ptr<my_service_handler>& self = reinterpret_cast<std::shared_ptr<my_service_handler>&>(self_1);
-		this->timer_id_ = this->reactor_->register_timer(5000, 5, std::make_shared<my_timer_handler>(self));
+		this->timer_id_ = this->reactor_->register_timer(5000, 5, this->socket_.handle());
 
 		if (INVALID_TIMER_ID == this->timer_id_)
 			this->close();
@@ -101,9 +99,10 @@ protected:
 
 		}
 	public:
-		void exec()
+		i32 exec()
 		{
 			this->service_handler_->handle_timeout(this->id_);
+			return 0;
 		}
 	private:
 		std::shared_ptr<my_service_handler> service_handler_;
