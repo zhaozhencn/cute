@@ -10,7 +10,6 @@
 
 #define MAX_RECV_BUF	1024
 #define TIMER_INTERVAL	5000
-#define TIMER_REPEAT	-1			// infinite times
 
 class echo_service_handler : public cute_service_handler
 {
@@ -30,7 +29,7 @@ public:
 			return CUTE_ERR;
 
 		// register_timer		
-		this->timer_id_ = this->reactor_->register_timer(TIMER_INTERVAL, TIMER_REPEAT, this->socket_.handle());
+		this->timer_id_ = this->reactor_->register_timer(TIMER_INTERVAL, this->socket_.handle());
 		if (INVALID_TIMER_ID == this->timer_id_)
 		{
 			this->close();
@@ -91,9 +90,12 @@ public:
 
 		// send server time
 		auto to_send = std::to_string(this->now());
-		if (CUTE_ERR == this->socket_.send(to_send.c_str(), to_send.length(), nullptr))
+		if (CUTE_ERR == this->socket_.send(to_send.c_str(), to_send.length(), nullptr)
+			|| (INVALID_TIMER_ID == (this->timer_id_ = this->reactor_->register_timer(TIMER_INTERVAL, this->socket_.handle()))) )
+		{
 			this->close();
-
+		}
+		
 		return 0;
 	}
 

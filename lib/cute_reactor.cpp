@@ -113,7 +113,7 @@ i32 cute_reactor::remove_handler(const cute_socket_acceptor & socket)
 	return CUTE_SUCC;
 }
 
-u64 cute_reactor::register_timer(i32 interval, i32 repeat_cnt, i32 fd)
+u64 cute_reactor::register_timer(i32 interval, i32 fd)
 {
 	WRITE_INFO_LOG("cute_reactor::register_timer" + thread_id_helper::exec());
 
@@ -122,7 +122,7 @@ u64 cute_reactor::register_timer(i32 interval, i32 repeat_cnt, i32 fd)
 		auto handler_proxy = this->get_handler_proxy(fd);
 		auto weak_ptr = std::weak_ptr<cute_reactor::cute_event_handler_proxy>(handler_proxy);
 		auto timer_handler = std::make_shared<cute_reactor_timer_handler>(weak_ptr);
-		return this->sche_timer_.register_timer(interval, repeat_cnt, timer_handler);
+		return this->sche_timer_.register_timer(interval, timer_handler);
 	}
 	catch (i32 fd)
 	{

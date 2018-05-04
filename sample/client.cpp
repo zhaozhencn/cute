@@ -54,7 +54,7 @@ i32 main(i32 argc, char* argv[])
 {
 	if (argc < 3)
 	{
-		std::cout << "usage: client <host> <port>" << std::endl;
+		std::cout << "usage: client <host> <port> <num>" << std::endl;
 		return 0;
 	}
 
@@ -62,6 +62,8 @@ i32 main(i32 argc, char* argv[])
 	reactor.init();
 	auto connector = std::make_shared<cute_connector<echo_service_handler>>();
 	cute_net_addr addr(argv[1], std::atoi(argv[2]));
+	auto num = std::atoi(argv[3]);
+	for (auto i = 0; i < num; ++i)
 	connector->connect(addr, &reactor);
 	reactor.run_loop();
     return 0;

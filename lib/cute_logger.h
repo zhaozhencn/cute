@@ -3,6 +3,7 @@
 
 #include "inc.h"
 #include "config.h"
+#include "util.h"
 
 class cute_logger
 {
@@ -61,9 +62,10 @@ typedef singleton<cute_logger> cute_logger_singleton;
 #define WRITE_LOG(log, level) \
 	{	\
 		std::ostringstream os; \
-		os << "Level: " << cute_logger_singleton::inst()->get_level_desc(level) << std::endl;	\
-		os << "File: " << __FILE__  <<  " Line: " << __LINE__  << " Function: " << __FUNCTION__ << std::endl;	\
-		os << "Log: " << log << std::endl; \
+		os << "time: " << util::now() << std::endl; \
+		os << "level: " << cute_logger_singleton::inst()->get_level_desc(level) << std::endl;	\
+		os << "file: " << __FILE__  <<  " Line: " << __LINE__  << " Function: " << __FUNCTION__ << std::endl;	\
+		os << "log: " << log << std::endl; \
 		cute_logger_singleton::inst()->write(os.str(), level); \
 	}
 

@@ -14,5 +14,16 @@ public:
 	}
 };
 
+class util
+{
+public:
+	static u64 now()
+	{
+		using namespace std::chrono;
+		auto now = high_resolution_clock::now();
+		return duration_cast<milliseconds>(now.time_since_epoch()).count();
+	}
+};
+
 #endif
 

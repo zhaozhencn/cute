@@ -27,7 +27,7 @@ public:
 	i32 remove_handler(const cute_socket_acceptor& socket);
 
 public:
-	u64 register_timer(i32 interval, i32 repeat_cnt, i32 fd);
+	u64 register_timer(i32 interval, i32 fd);
 	i32 remove_timer(u64 timer_id);
 
 public:	

@@ -24,8 +24,7 @@ public:
 			return CUTE_ERR;
 		
 		// add some logic
-		this->timer_id_ = this->reactor_->register_timer(5000, 5, this->socket_.handle());
-
+		this->timer_id_ = this->reactor_->register_timer(5000, this->socket_.handle());
 		if (INVALID_TIMER_ID == this->timer_id_)
 			this->close();
 
@@ -83,30 +82,17 @@ public:
 			WRITE_INFO_LOG("it is time to exit, data: " + to_send);
 			this->close();
 		}
+		else
+		{
+			this->timer_id_ = this->reactor_->register_timer(5000, this->socket_.handle());
+			if (INVALID_TIMER_ID == this->timer_id_)
+				this->close();
+		}
 
 		++data;
 
 		return 0;
 	}
-
-protected:
-	class my_timer_handler : public timer_handler
-	{
-	public:
-		my_timer_handler(std::shared_ptr<my_service_handler> service_handler)
-			: service_handler_(service_handler)
-		{
-
-		}
-	public:
-		i32 exec()
-		{
-			this->service_handler_->handle_timeout(this->id_);
-			return 0;
-		}
-	private:
-		std::shared_ptr<my_service_handler> service_handler_;
-	};
 
 private:
 	u64 timer_id_;
@@ -115,9 +101,9 @@ private:
 
 i32 main(i32 argc, char* argv[])
 {
-	if (argc < 3)
+	if (argc < 4)
 	{
-		std::cout << "usage: test_cute_connector <host> <port>" << std::endl;
+		std::cout << "usage: test_cute_connector <host> <port> <num>" << std::endl;
 		return 0;
 	}
 
@@ -125,7 +111,9 @@ i32 main(i32 argc, char* argv[])
 	reactor.init();
 	auto connector = std::make_shared<cute_connector<my_service_handler>>();
 	cute_net_addr addr(argv[1], std::atoi(argv[2]));
-	connector->connect(addr, &reactor);
+	auto num = std::atoi(argv[3]);
+	for (auto i = 0; i < num; ++i)
+		connector->connect(addr, &reactor);
 	reactor.run_loop();
     return 0;
 }
