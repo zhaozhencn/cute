@@ -17,7 +17,19 @@ timer_wheel::timer_wheel(u32 max_wheel_size, u32 magnitude, std::weak_ptr<timer_
 		vec_.push_back(timer_node_map_t());
 }
 
+void timer_wheel::move_curr_wheel_idx()
+{
+	std::lock_guard<std::mutex> guard(this->mutex_);
+	this->curr_wheel_idx_ = (++this->curr_wheel_idx_) % this->max_wheel_size_;
+}
+
 i32 timer_wheel::add_timer_node(timer_node_ptr_t node, u32 wheel_idx)
+{
+	std::lock_guard<std::mutex> guard(this->mutex_);
+	return this->add_timer_node_i(node, wheel_idx);
+}
+
+i32 timer_wheel::add_timer_node_i(timer_node_ptr_t node, u32 wheel_idx)
 {
 	if (this->timer_wheel_idx_map_.find(node->id_) != this->timer_wheel_idx_map_.end())
 		return CUTE_ERR;
@@ -28,24 +40,17 @@ i32 timer_wheel::add_timer_node(timer_node_ptr_t node, u32 wheel_idx)
 	this->timer_wheel_idx_map_.insert(std::make_pair(node->id_, wheel_idx));
 
 	// update timer id to timer_wheel
-	this->sche_timer_->timer_idx_wheel_map_[node->id_] = this->magnitude_;
-
-	/*
-	std::ostringstream os;
-	os << " ======== node->lower_magnitude_interval_: " << node->lower_magnitude_interval_
-		<< " this->magnitude_: " << this->magnitude_
-		<< " to_add_wheel_idx: " << wheel_idx
-		<< " curr_wheel_idx: " << this->curr_wheel_idx_
-		<< " sche_timer_->curr_tick_: " << this->sche_timer_->curr_tick_;
-
-	std::string log = os.str();
-	WRITE_INFO_LOG("timer_wheel::add_timer_node " + log);
-	*/
-
+	this->sche_timer_->register_timer_id_to_map(node->id_, this->magnitude_);
 	return CUTE_SUCC;
 }
 
 void timer_wheel::remove_timer_node(u64 id)
+{
+	std::lock_guard<std::mutex> guard(this->mutex_);
+	this->remove_timer_node_i(id);
+}
+
+void timer_wheel::remove_timer_node_i(u64 id)
 {
 	auto it = this->timer_wheel_idx_map_.find(id);
 	if (it == this->timer_wheel_idx_map_.end())
@@ -59,67 +64,48 @@ void timer_wheel::remove_timer_node(u64 id)
 
 void timer_wheel::down_magnitude_entry()
 {
+	std::lock_guard<std::mutex> guard(this->mutex_);
+
 	auto ptr = this->lower_magnitude_wheel_ptr_.lock();
 	timer_node_map_vec_t::reference map = this->vec_.at(this->curr_wheel_idx_);
 	std::for_each(map.begin(), map.end(), [&](timer_node_map_t::const_reference ref)
 	{
-		/*
-		std::ostringstream os;
-		os << "this->magnitude_: " << this->magnitude_
-			<< " this->curr_wheel_idx_: " << this->curr_wheel_idx_
-			<< " sche_timer_->curr_tick_: " << this->sche_timer_->curr_tick_;
-
-		std::string log = os.str();
-		WRITE_INFO_LOG("timer_wheel::down_magnitude_entry => " + log);
-		*/
-
 		auto node = ref.second;
 		if (ptr)
-			ptr->down_magnitude_timer_node(node);
+			ptr->down_magnitude_timer_node_i(node);
 		this->timer_wheel_idx_map_.erase(node->id_);
 	});
-	map.clear();
 
-	// update curr_wheel_idx_
-	this->move_curr_wheel_idx();
+	map.clear();	
 }
 
-void timer_wheel::down_magnitude_timer_node(timer_node_ptr_t node)
+void timer_wheel::down_magnitude_timer_node_i(timer_node_ptr_t node)
 {
 	auto wheel_idx = node->lower_magnitude_interval_ / cute_sche_timer::TIMER_INTERVAL / this->magnitude_;
-
-	/*
-	std::ostringstream os;
-	os << "node->lower_magnitude_interval_: " << node->lower_magnitude_interval_ 
-		<< " this->magnitude_: " << this->magnitude_
-		<< " wheel_idx: " << wheel_idx
-		<< " curr_wheel_idx: " << this->curr_wheel_idx_;
-	std::string log = os.str();
-	WRITE_INFO_LOG("timer_wheel::down_magnitude_timer_node =>  " + log);
-	*/
 
 	// current magnitude can hold it
 	if (wheel_idx > 0)	
 	{
 		node->lower_magnitude_interval_ -= wheel_idx * this->magnitude_ * cute_sche_timer::TIMER_INTERVAL;
-		this->add_timer_node(node, wheel_idx);
+		this->add_timer_node_i(node, wheel_idx);
 	}
 	else
 	{
-		WRITE_INFO_LOG("down_magnitude_timer_node");
+		WRITE_INFO_LOG("down_magnitude_timer_node_i");
 		auto ptr = this->lower_magnitude_wheel_ptr_.lock();
 		if (ptr)
-			ptr->down_magnitude_timer_node(node);
+			ptr->down_magnitude_timer_node_i(node);
 		else
 		{
 			WRITE_INFO_LOG("reach the wheel chain head");
-			this->add_timer_node(node, wheel_idx); // special: reach the wheel chain head
+			this->add_timer_node_i(node, wheel_idx); // special: reach the wheel chain head
 		}
 	}
 }
 
 std::list<u64> timer_wheel::get_timer_id_list()
 {
+	std::lock_guard<std::mutex> guard(this->mutex_);
 	std::list<u64> to_handler_id_list;
 	timer_node_map_vec_t::const_reference timer_node_map = this->vec_.at(this->curr_wheel_idx_);
 	std::for_each(timer_node_map.begin(), timer_node_map.end(), [&to_handler_id_list](timer_node_map_t::const_reference ref)
@@ -132,7 +118,8 @@ std::list<u64> timer_wheel::get_timer_id_list()
 
 std::shared_ptr<timer_node> timer_wheel::get_timer_node(u64 id)
 {
-	timer_node_map_vec_t::const_reference timer_node_map = this->vec_.at(this->curr_wheel_idx_);
+	std::lock_guard<std::mutex> guard(this->mutex_);
+	timer_node_map_vec_t::reference timer_node_map = this->vec_.at(this->curr_wheel_idx_);
 	if (timer_node_map.find(id) == timer_node_map.end())
 		throw id;
 	return timer_node_map.at(id);
@@ -189,6 +176,7 @@ i32 cute_sche_timer::open()
 			if (cute_sche_timer::ABORTING == this->curr_status_)
 				break;
 
+			// dispatch timer 
 			i32 dispatched_cnt = 0;
 			this->dispatch(dispatched_cnt);
 
@@ -198,8 +186,12 @@ i32 cute_sche_timer::open()
 					+ " thread: " + thread_id_helper::exec());
 			}
 
+			// sleep timer interval 
 			std::chrono::milliseconds duration(TIMER_INTERVAL);
 			std::this_thread::sleep_for(duration);
+
+			// update 
+			this->update();
 		}
 
 		WRITE_INFO_LOG("exit cute_sche_timer thread, thread: " + thread_id_helper::exec());
@@ -221,7 +213,6 @@ void cute_sche_timer::close()
 
 u64 cute_sche_timer::register_timer(i32 interval, std::shared_ptr<timer_handler> handler)
 {	
-	std::lock_guard<std::mutex> guard(this->mutex_);
 	WRITE_INFO_LOG("cute_sche_timer::register_timer thread: " + thread_id_helper::exec());
 	if (interval < TIMER_INTERVAL || interval > MAX_TIMER_INVTERVAL)
 		return INVALID_TIMER_ID;
@@ -244,7 +235,7 @@ u64 cute_sche_timer::add_timer_node(std::shared_ptr<timer_node> node)
 		if (wheel_idx > 0)
 		{
 			node->lower_magnitude_interval_ -= wheel_idx * magnitude * TIMER_INTERVAL;
-			timer_wheel_map_t::mapped_type timer_wheel = this->timer_wheel_map_.at(magnitude);
+			auto timer_wheel = this->timer_wheel_map_.at(magnitude);
 			timer_wheel->add_timer_node(node, wheel_idx);
 			return node->id_;
 		}
@@ -255,10 +246,41 @@ u64 cute_sche_timer::add_timer_node(std::shared_ptr<timer_node> node)
 
 i32 cute_sche_timer::remove_timer(u64 id)
 {
-	std::lock_guard<std::mutex> guard(this->mutex_);
 	WRITE_INFO_LOG("cute_sche_timer::remove_timer: id: " + std::to_string(id));
-	this->to_remove_id_set_.insert(id);
+	
+	try
+	{
+		auto magnitude = this->get_magnitude_from_map(id);
+		auto wheel = this->timer_wheel_map_.at(magnitude);
+		WRITE_INFO_LOG("cute_sche_timer::remove_timer id: " + std::to_string(id));
+		wheel->remove_timer_node(id);
+		this->remove_timer_id_from_map(id);
+	}
+	catch (...)
+	{
+		WRITE_INFO_LOG("cute_sche_timer::remove_timer NOT exist id: " + std::to_string(id));
+	}
+
 	return CUTE_SUCC;	
+}
+
+
+u32 cute_sche_timer::get_magnitude_from_map(u64 id)
+{
+	std::lock_guard<std::mutex> guard(this->idx_wheel_map_mutex_);
+	return this->timer_idx_wheel_map_.at(id);
+}
+
+void cute_sche_timer::register_timer_id_to_map(u64 id, u32 magnitude)
+{
+	std::lock_guard<std::mutex> guard(this->idx_wheel_map_mutex_);
+	this->timer_idx_wheel_map_[id] = magnitude;
+}
+
+void cute_sche_timer::remove_timer_id_from_map(u64 id)
+{
+	std::lock_guard<std::mutex> guard(this->idx_wheel_map_mutex_);
+	this->timer_idx_wheel_map_.erase(id);
 }
 
 void cute_sche_timer::dispatch(i32 & dispatched_cnt)
@@ -290,32 +312,35 @@ void cute_sche_timer::dispatch(i32 & dispatched_cnt)
 		{
 			WRITE_ERROR_LOG("timer_node_map NOT exist timer id: " + std::to_string(id));
 		}
-	});
-	
-	// update move_curr_wheel_idx
-	this->move_magnitude_1_wheel_idx();
-
-	// update curr_tick_
-	++this->curr_tick_;
-
-	// handle remove handler
-	this->handle_remove_id_set();
+	});	
 }
 
-void cute_sche_timer::move_magnitude_1_wheel_idx()
+void cute_sche_timer::update()
 {
-	std::lock_guard<std::mutex> guard(this->mutex_);
-	timer_wheel_map_t::mapped_type wheel = this->timer_wheel_map_.at(cute_sche_timer::MAGNITUDE_1);
-	wheel->move_curr_wheel_idx();
+	// update move_magnitude_wheel_idx
+	this->move_magnitude_wheel_idx();
+
+	// update curr_tick_
+	this->curr_tick_ = (++this->curr_tick_) % MAX_TIMER_INVTERVAL;
+}
+
+void cute_sche_timer::move_magnitude_wheel_idx()
+{
+	std::for_each(this->timer_wheel_map_.rbegin(), this->timer_wheel_map_.rend(), [&](timer_wheel_map_t::reference ref)
+	{
+		u32 magnitude = ref.first;
+		auto timer_wheel = ref.second;
+		if (0 == this->curr_tick_ % magnitude)
+			timer_wheel->move_curr_wheel_idx();
+	});
 }
 
 void cute_sche_timer::try_down_timer_magnitude()
 {
-	std::lock_guard<std::mutex> guard(this->mutex_);
 	std::for_each(this->timer_wheel_map_.rbegin(), this->timer_wheel_map_.rend(), [&](timer_wheel_map_t::reference ref)
 	{
 		u32 magnitude = ref.first;
-		timer_wheel_map_t::mapped_type timer_wheel = ref.second;
+		auto timer_wheel = ref.second;
 		if (MAGNITUDE_1 != magnitude && 0 == this->curr_tick_ % magnitude)
 			timer_wheel->down_magnitude_entry();
 	});
@@ -323,38 +348,13 @@ void cute_sche_timer::try_down_timer_magnitude()
 
 std::list<u64> cute_sche_timer::get_timer_id_list()
 {
-	std::lock_guard<std::mutex> guard(this->mutex_);
-	timer_wheel_map_t::mapped_type wheel = this->timer_wheel_map_.at(cute_sche_timer::MAGNITUDE_1);
+	auto wheel = this->timer_wheel_map_.at(cute_sche_timer::MAGNITUDE_1);
 	return wheel->get_timer_id_list();
 }
 
 std::shared_ptr<timer_node> cute_sche_timer::get_timer_node(u64 id) throw(u64)
 {
-	std::lock_guard<std::mutex> guard(this->mutex_);
-	timer_wheel_map_t::mapped_type wheel = this->timer_wheel_map_.at(cute_sche_timer::MAGNITUDE_1);
+	auto wheel = this->timer_wheel_map_.at(cute_sche_timer::MAGNITUDE_1);
 	return wheel->get_timer_node(id);
 }
-
-void cute_sche_timer::handle_remove_id_set()
-{
-	std::lock_guard<std::mutex> guard(this->mutex_);	
-	std::for_each(this->to_remove_id_set_.begin(), this->to_remove_id_set_.end(), [&](u64 id)
-	{
-		try
-		{
-			auto magnitude = this->timer_idx_wheel_map_.at(id);
-			auto wheel = this->timer_wheel_map_.at(magnitude);
-			WRITE_INFO_LOG("cute_sche_timer::handle_remove_id_set id: " + std::to_string(id));
-			wheel->remove_timer_node(id);
-			this->timer_idx_wheel_map_.erase(id);
-		}
-		catch (...)
-		{
-			WRITE_INFO_LOG("cute_sche_timer::handle_remove_id_set NOT exist id: " + std::to_string(id));
-		}
-	});
-
-	this->to_remove_id_set_.clear();
-}
-
 

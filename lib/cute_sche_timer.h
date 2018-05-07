@@ -81,19 +81,19 @@ public:
 		return this->max_wheel_size_;
 	}
 
-	inline void move_curr_wheel_idx()
-	{
-		this->curr_wheel_idx_ = (this->curr_wheel_idx_ + 1) % this->max_wheel_size_;
-	}
-
 public:
+	void move_curr_wheel_idx();
 	i32 add_timer_node(timer_node_ptr_t node, u32 wheel_idx);
 	void remove_timer_node(u64 id);
-	void down_magnitude_entry();
-	void down_magnitude_timer_node(timer_node_ptr_t node);
+	void down_magnitude_entry();	
 	std::list<u64> get_timer_id_list();
 	std::shared_ptr<timer_node> get_timer_node(u64 id);
-	
+
+private:
+	i32 add_timer_node_i(timer_node_ptr_t node, u32 wheel_idx);
+	void remove_timer_node_i(u64 id);
+	void down_magnitude_timer_node_i(timer_node_ptr_t node);
+
 private:
 	u32							max_wheel_size_;
 	u32							magnitude_;
@@ -104,6 +104,9 @@ private:
 	timer_wheel_idx_map_t		timer_wheel_idx_map_;
 	std::weak_ptr<timer_wheel>	lower_magnitude_wheel_ptr_;
 	cute_sche_timer*			sche_timer_;
+
+private:
+	std::mutex					mutex_;
 };
 
 
@@ -122,46 +125,51 @@ public:
 	i32 remove_timer(u64 id);
 
 public:
-	void dispatch(i32 &dispatched_cnt);
-
+	u32 get_magnitude_from_map(u64 id);
+	void register_timer_id_to_map(u64 id, u32 magnitude);
+	void remove_timer_id_from_map(u64 id);
+	
 public:
-	enum { TIMER_INTERVAL = 60 };	
+	enum { TIMER_INTERVAL = 60 };
 	enum { MAX_TIMER_INVTERVAL = 1 << 30 };
 	enum { BASE_TIMER_ID_SEED = 10 };
 	enum { CLOSED = 0, RUNNING = 1, ABORTING = 2 };
-	enum { MAGNITUDE_1 = 1, 
+	enum {
+		MAGNITUDE_1 = 1,
 		MAGNITUDE_8 = (1 << 8),
 		MAGNITUDE_12 = (1 << 12),
 		MAGNITUDE_16 = (1 << 16),
-		MAGNITUDE_24 = (1 << 24) };
-	enum { MAGNITUDE_1_MAX_SIZE = (1 << 8),
+		MAGNITUDE_24 = (1 << 24)
+	};
+	enum {
+		MAGNITUDE_1_MAX_SIZE = (1 << 8),
 		MAGNITUDE_8_MAX_SIZE = (1 << 4),
 		MAGNITUDE_12_MAX_SIZE = (1 << 4),
 		MAGNITUDE_16_MAX_SIZE = (1 << 8),
-		MAGNITUDE_24_MAX_SIZE = (1 << 8) };
+		MAGNITUDE_24_MAX_SIZE = (1 << 8)
+	};
 
 private:
+	void dispatch(i32 &dispatched_cnt);
+	void update();
 	u64 add_timer_node(std::shared_ptr<timer_node> node);
-	void move_magnitude_1_wheel_idx();
+	void move_magnitude_wheel_idx();
 	void try_down_timer_magnitude();
 	std::list<u64> get_timer_id_list();
 	std::shared_ptr<timer_node> get_timer_node(u64 id) throw(u64);
-	void handle_remove_id_set();	
+	
 
-private:	
+private:
 	typedef std::map<u32, std::shared_ptr<timer_wheel>>
-										timer_wheel_map_t;
+		timer_wheel_map_t;
 	timer_wheel_map_t					timer_wheel_map_;
 	u32									curr_tick_;
 
 	typedef std::map<u64, u32>			timer_idx_wheel_map_t;		// map timer_id to timer_wheel
 	timer_idx_wheel_map_t				timer_idx_wheel_map_;
+	std::mutex							idx_wheel_map_mutex_;
 
 	friend class timer_wheel;
-
-private:
-	std::set<u64>						to_remove_id_set_;
-	std::mutex							mutex_;
 
 private:
 	std::thread							thread_;
