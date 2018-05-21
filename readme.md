@@ -53,7 +53,7 @@
     }
 
 # compile it and run sample
-#### cmake .
+#### cmake -DCMAKE_BUILD_TYPE=Debug .
 #### make 
 #### ./sample/server &
 #### ./sample/client 127.0.0.1 11000
