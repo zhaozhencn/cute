@@ -53,7 +53,7 @@
     }
 
 # compile it and run sample
-#### cd <setup_folder>/cute/src
+#### cd <setup_folder>/cute
 #### cmake -DCMAKE_BUILD_TYPE=Debug .
 #### make 
 #### ./sample/server &
