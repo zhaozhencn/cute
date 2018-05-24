@@ -16,8 +16,11 @@
 #include <array>
 #include <atomic>
 #include <set>
+#include <new>
 
 // system
+#define LINUX	1
+#ifdef LINUX
 #include <unistd.h>  
 #include <errno.h>  
 #include <sys/socket.h>  
@@ -28,6 +31,7 @@
 #include <sys/epoll.h>  
 #include <string.h>
 #include <signal.h>
+#endif
 
 #endif
 
