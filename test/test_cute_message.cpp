@@ -1,5 +1,6 @@
 #include "../lib/cute_mem_pool.h"
 #include "../lib/cute_message.h"
+#include <iomanip>
 
 int test1()
 {
@@ -58,8 +59,8 @@ int test2()
 
 int test3()
 {
-        cute_mem_pool pool;
-        pool.init(12, 4);
+	cute_mem_pool pool;
+	pool.init(12, 4);
 	std::cout << "original pool dump" << std::endl;
 	pool.dump();
 
@@ -81,19 +82,42 @@ int test3()
 		std::cout << "data in mq: " << std::endl;
 		for (i32 i = 0; i < 16; ++i)
 	        {
-        	        u8 ch = 0;
-                	auto ret = m.read(ch);
-	                std::cout << "message.read: " << ch << " ret: " << ret << std::endl;
+				u8 ch = 0;
+				auto ret = m.read(ch);
+				std::cout << "message.read: " << ch << " ret: " << ret << std::endl;
 	        }
 	});
 	}
 
-        std::cout << "release pool dump" << std::endl;
-        pool.dump();
+	std::cout << "release pool dump" << std::endl;
+	pool.dump();
 
 	return 0;
 }
 
+int test4()
+{
+	cute_mem_pool pool;
+	pool.init(12, 4);
+	std::cout << "original pool dump" << std::endl;
+	pool.dump();
+	cute_message message(&pool, 16);
+
+	std::cout << "original pool dump by for" << std::endl;
+	auto it = message.begin();
+	auto it_e = message.end();
+	for (; it != it_e; ++it)
+		std::cout << "raw_data: " << std::setbase(16) << static_cast<const void*>((*it).raw_data()) << " raw_data_len: " << (*it).raw_data_len() << std::endl;
+
+	std::cout << "original pool dump by std::for_each" << std::endl;
+	std::for_each(message.begin(), message.end(), [](cute_data_block& block)
+	{
+		std::cout << "raw_data: " << std::setbase(16) << static_cast<const void*>(block.raw_data()) << " raw_data_len: " << block.raw_data_len() << std::endl;
+	});
+
+	pool.fini();
+	return 0;
+}
 
 int main()
 {
@@ -103,6 +127,8 @@ int main()
 	test2();
 	std::cout << "test3" << std::endl;
 	test3();
+	std::cout << "test4" << std::endl;
+	test4();
 	return 0;
 }
 

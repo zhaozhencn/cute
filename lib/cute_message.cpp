@@ -52,6 +52,35 @@ cute_message&& cute_message::operator = (cute_message&& src)
 	return std::move(*this);	
 }
 
+cute_message::data_block_iter::data_block_iter(cute_message& message, u32 idx)
+	: message_(message)
+	, idx_(idx)
+{
+
+}
+
+cute_data_block& cute_message::data_block_iter::operator * ()
+{
+	this->message_.data_block_vec_[this->idx_];
+}
+
+cute_message::data_block_iter& cute_message::data_block_iter::operator ++()
+{
+	++this->idx_;
+	return *this;
+}
+	 
+cute_message::data_block_iter cute_message::begin()
+{
+	return cute_message::data_block_iter(*this, 0);
+}
+
+cute_message::data_block_iter cute_message::end()
+{
+	return cute_message::data_block_iter(*this, this->data_block_vec_.size());
+}
+
+
 i32 cute_message::read_i(u8& data)
 {
 	return this->read_bytes_i((u8*)&data, u8_size);

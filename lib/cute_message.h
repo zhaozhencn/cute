@@ -2,10 +2,9 @@
 #define CUTE_MESSAGE_H__
 
 #include "config.h"
+#include "cute_data_block.h"
 
 class cute_mem_pool;
-class cute_data_block;
-
 class cute_message
 {
 public:
@@ -13,12 +12,52 @@ public:
 	~cute_message();
 
 	cute_message(cute_message&& src);
-        cute_message&& operator = (cute_message&& src);
+	cute_message&& operator = (cute_message&& src);
 
 public:
 	cute_message(const cute_message&) = delete;
-        cute_message& operator = (const cute_message&) = delete;
+	cute_message& operator = (const cute_message&) = delete;
 
+public:
+	template<typename T>
+	bool operator != (T&& compare)
+	{
+		return static_cast<void*>(this) != static_cast<void*>(&compare);
+	}
+
+	template<typename T>
+	bool operator == (T&& compare)
+	{
+		return static_cast<void*>(this) == static_cast<void*>(&compare);
+	}
+
+public:
+	class data_block_iter
+	{
+	public:
+		data_block_iter(cute_message& message, u32 idx);
+		cute_data_block& operator * ();
+		data_block_iter& operator ++();
+
+		template<typename T>
+		bool operator != (T&& compare)
+		{
+			return this->message_ != compare.message_ || this->idx_ != compare.idx_;
+		}
+
+		template<typename T>
+		bool operator == (T&& compare)
+		{
+			return this->message_ == compare.message_ && this->idx_ == compare.idx_;
+		}
+
+	private:
+		cute_message & message_;
+		u32 idx_;
+	};
+
+	data_block_iter begin();
+	data_block_iter end();
 
 public:
 	template<typename... T>
@@ -67,6 +106,8 @@ private:
 	std::vector<cute_data_block>	data_block_vec_;
 	u32				write_vec_idx_;
 	u32				read_vec_idx_;
+
+	friend class data_block_iter;
 };
 
 #endif

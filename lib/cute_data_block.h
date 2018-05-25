@@ -73,7 +73,42 @@ public:
 		memcpy(this->raw_data_ + this->wp_, data, writeable);
 		this->wp_ += writeable;
 		return writeable == len ? CUTE_SUCC : writeable;
-	}	
+	}
+
+	u8* raw_data()
+	{
+		return this->raw_data_;
+	}
+
+	u32 raw_data_len()
+	{
+		return this->raw_data_len_;
+	}
+
+	u32 payload_len()
+	{
+		return this->wp_ - this->rp_;
+	}
+
+	u32 rp()
+	{
+		return this->rp_;
+	}
+
+	void rp(u32 offset)
+	{
+		this->rp_ += offset;
+	}
+
+	u32 wp()
+	{
+		return this->wp_;
+	}
+
+	void wp(u32 offset)
+	{
+		this->wp_ += offset;
+	}
 
 private:
 	u32 get_readable_space(u32 len)
