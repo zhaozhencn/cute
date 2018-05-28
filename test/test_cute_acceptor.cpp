@@ -15,13 +15,13 @@ public:
 	{
 		WRITE_INFO_LOG("my_service_handler:handle_input, fd: " + std::to_string(fd));
 
-		size_t len = 1024;
-		size_t byte_translated = 0;
-		char buf[1024] = { 0 };
+		u32 len = 1024;
+		u32 byte_translated = 0;
+		u8 buf[1024] = { 0 };
 		this->socket_.recv(buf, len, &byte_translated);
 		if (byte_translated > 0)
 		{
-			std::string content = std::string(buf, buf + byte_translated);
+			auto content = std::string(buf, buf + byte_translated);
 			std::cout << "recv: " << content << std::endl;
 
 			// 输入a, 将发送缓冲区塞满，再变为“非满”， 验证触发 handle_output 
@@ -30,8 +30,8 @@ public:
 				for (auto i = 0; ; ++i)
 				{
 					auto to_send = std::to_string(i);
-					size_t byte_translated = 0;
-					i32 ret = this->socket_.send(to_send.c_str(), to_send.length(), &byte_translated);
+					u32 byte_translated = 0;
+					u32 ret = this->socket_.send((u8*)to_send.c_str(), to_send.length(), &byte_translated);
 					if (CUTE_SEND_BUF_FULL == ret)
 					{
 						std::cout << "CUTE_SEND_BUF_FULL" << std::endl;
@@ -47,7 +47,7 @@ public:
 				}
 			}
 			else
-				this->socket_.send(content.c_str(), content.length(), &byte_translated);			
+				this->socket_.send((u8*)content.c_str(), (u32)content.length(), &byte_translated);			
 		}
 		else
 			this->close();

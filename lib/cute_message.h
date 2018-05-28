@@ -60,6 +60,14 @@ public:
 	data_block_iter end();
 
 public:
+	inline u32 length() const
+	{
+		return this->length_;
+	}
+
+	void reset();
+
+public:
 	template<typename... T>
 	i32 read(T&&... data)
 	{
@@ -106,6 +114,7 @@ private:
 	std::vector<cute_data_block>	data_block_vec_;
 	u32				write_vec_idx_;
 	u32				read_vec_idx_;
+	u32				length_;
 
 	friend class data_block_iter;
 };

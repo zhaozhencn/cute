@@ -52,6 +52,15 @@ cute_message&& cute_message::operator = (cute_message&& src)
 	return std::move(*this);	
 }
 
+void cute_message::reset()
+{
+	this->write_vec_idx_ = this->read_vec_idx_ = 0;
+	std::for_each(this->data_block_vec_.begin(), this->data_block_vec_.end(), [](cute_data_block& block)
+        {
+                block.reset();
+        });
+}
+
 cute_message::data_block_iter::data_block_iter(cute_message& message, u32 idx)
 	: message_(message)
 	, idx_(idx)
@@ -61,7 +70,7 @@ cute_message::data_block_iter::data_block_iter(cute_message& message, u32 idx)
 
 cute_data_block& cute_message::data_block_iter::operator * ()
 {
-	this->message_.data_block_vec_[this->idx_];
+	return this->message_.data_block_vec_[this->idx_];
 }
 
 cute_message::data_block_iter& cute_message::data_block_iter::operator ++()
@@ -127,22 +136,18 @@ i32 cute_message::next_read_block()
 	return this->data_block_vec_.size() > this->read_vec_idx_ ? CUTE_SUCC : CUTE_ERR;
 }
 
+// return the bytes read success (0 .. len)
 i32 cute_message::read_bytes_i(u8* data, u32 len)
 {
 	if (this->read_vec_idx_ >= this->data_block_vec_.size())
-		return CUTE_ERR;
-	auto ret = this->data_block_vec_[this->read_vec_idx_].read((u8*)data, len);
-	if (cute_data_block::NO_DATA_TO_READ == ret)
-		return CUTE_ERR;
-	else if (CUTE_SUCC == ret)
-		return CUTE_SUCC;
+		return 0;
+	auto acture_read = this->data_block_vec_[this->read_vec_idx_].read((u8*)data, len);
+	if (len == acture_read)		// read succ
+		return len;
 	else
 	{
 		this->next_read_block();
-		if (cute_data_block::READ_TO_END == ret)
-			return this->read_bytes_i(data, len);
-		else
-			return this->read_bytes_i(data + ret, len - ret);
+		return this->read_bytes_i(data + acture_read, len - acture_read) + acture_read;	// read continue remain
 	}
 }
 
@@ -190,18 +195,14 @@ i32 cute_message::write_i(i64 data)
 i32 cute_message::write_bytes_i(u8* data, u32 len)
 {
 	if (this->write_vec_idx_ >= this->data_block_vec_.size())
-		return CUTE_ERR;
-	
-	auto ret = this->data_block_vec_[this->write_vec_idx_].write((u8*)data, len);
-	if (CUTE_SUCC == ret)
-		return ret;
+		return 0;	
+	auto acture_write = this->data_block_vec_[this->write_vec_idx_].write((u8*)data, len);
+	if (acture_write == len)	// write succ
+		return len;
 	else
 	{
 		this->next_write_block();
-		if (cute_data_block::WRITE_TO_END == ret)
-			return this->write_bytes_i(data, len);
-		else
-			return this->write_bytes_i(data + ret, len - ret);
+		return this->write_bytes_i(data + acture_write, len - acture_write) + acture_write; // write continue remain
 	}
 }
 

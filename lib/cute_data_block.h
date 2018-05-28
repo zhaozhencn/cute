@@ -4,13 +4,34 @@
 #include "config.h"
 #include "cute_mem_pool.h"
 
-class cute_data_block
+class data_block_reader
 {
 public:
-	enum { NO_DATA_TO_READ = -1 };
-	enum { READ_TO_END = -2 };
-	enum { WRITE_TO_END = -3};
+	virtual ~data_block_reader()
+	{
+	}
 
+	// return the length of the actual data read
+	virtual u32 execute(u8* read_buf, u32 readable_bytes) = 0;
+};
+
+using data_block_reader_ptr = std::shared_ptr<data_block_reader>;
+
+class data_block_writer
+{
+public:
+	virtual ~data_block_writer()
+	{
+	}
+
+	// return the length of the actual data write
+	virtual u32 execute(u8* write_buf, u32 writeable_bytes) = 0;
+};
+
+using data_block_writer_ptr = std::shared_ptr<data_block_writer>;
+
+class cute_data_block
+{
 public:
 	cute_data_block(cute_mem_pool* pool)
 		: raw_data_(nullptr)
@@ -51,65 +72,60 @@ public:
 		}
 	}
 
-	// 0 succ, -1 no data to read, -2 reach the buff end, n: part read succ bytes
-	i32 read(u8* data, u32 len)
+	void reset()
 	{
-		if (this->rp_ == this->raw_data_len_)
-			return READ_TO_END;
-		auto readable = this->get_readable_space(len);
-		if (0 == readable)
-			return NO_DATA_TO_READ;
-		memcpy(data, this->raw_data_ + this->rp_, readable);
-		this->rp_ += readable;
-		return readable == len ? CUTE_SUCC : readable;
+		this->wp_ = this->rp_ = 0;
 	}
 
-	// 0 succ, -1 failed, n: part write succ bytes
-	i32 write(u8* data, u32 len)
+	// Returns the length of the actual data read (0 .. len)
+	u32 read(u8* data, u32 len)
+	{
+		auto readable = this->get_readable_space(len);
+		if (readable)
+		{
+			memcpy(data, this->raw_data_ + this->rp_, readable);
+			this->rp_ += readable;
+		}
+		return readable;
+	}
+
+	// Returns the length of the actual data write (0 .. len)
+	u32 write(u8* data, u32 len)
 	{
 		auto writeable = this->get_writeable_space(len);
+		if (writeable)
+		{
+			memcpy(this->raw_data_ + this->wp_, data, writeable);
+			this->wp_ += writeable;
+		}
+		return writeable;
+	}
+
+	// read or write by implement interface
+	u32 read(data_block_reader_ptr reader)
+	{
+		auto readable = this->get_readable_space(this->raw_data_len_);
+		if (0 == readable)
+			return 0;
+		auto actual_read = reader->execute(this->raw_data_ + this->rp_, readable);
+		if (actual_read >= readable)
+			actual_read = readable;
+		this->rp_ += actual_read;
+		return actual_read;
+	}
+
+	u32 write(data_block_writer_ptr writer)
+	{
+		auto writeable = this->get_writeable_space(this->raw_data_len_);
 		if (0 == writeable)
-			return WRITE_TO_END;
-		memcpy(this->raw_data_ + this->wp_, data, writeable);
-		this->wp_ += writeable;
-		return writeable == len ? CUTE_SUCC : writeable;
+			return 0;	   
+		auto actual_write = writer->execute(this->raw_data_ + this->wp_, writeable);
+		if (actual_write >= writeable)
+			actual_write = writeable;
+		this->wp_ += actual_write;
+		return actual_write;  
 	}
-
-	u8* raw_data()
-	{
-		return this->raw_data_;
-	}
-
-	u32 raw_data_len()
-	{
-		return this->raw_data_len_;
-	}
-
-	u32 payload_len()
-	{
-		return this->wp_ - this->rp_;
-	}
-
-	u32 rp()
-	{
-		return this->rp_;
-	}
-
-	void rp(u32 offset)
-	{
-		this->rp_ += offset;
-	}
-
-	u32 wp()
-	{
-		return this->wp_;
-	}
-
-	void wp(u32 offset)
-	{
-		this->wp_ += offset;
-	}
-
+  
 private:
 	u32 get_readable_space(u32 len)
 	{

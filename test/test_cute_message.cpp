@@ -95,6 +95,34 @@ int test3()
 	return 0;
 }
 
+
+
+
+	class reader : public data_block_reader
+	{
+		virtual u32 execute(u8* read_buf, u32 readable_bytes)
+		{
+			std::cout << "read_buf: " << std::setbase(16) << static_cast<const void*>(read_buf) << " readable_bytes: " << readable_bytes << std::endl;
+			for (auto i = 0; i < readable_bytes; ++i)
+				std::cout << read_buf[i] << std::endl;
+			return readable_bytes;
+		}
+	};
+
+	class writer : public data_block_writer
+	{
+		virtual u32 execute(u8* write_buf, u32 writeable_bytes)
+		{
+			std::cout << "write_buf: " << std::setbase(16) << static_cast<const void*>(write_buf) << " writeable_bytes: " << writeable_bytes << std::endl;
+			for (auto i = 0; i < writeable_bytes; ++i)
+			{
+				write_buf[i] = '0' + i;
+				std::cout << write_buf[i] << std::endl;
+			}
+			return writeable_bytes;
+		}
+	};
+
 int test4()
 {
 	cute_mem_pool pool;
@@ -103,16 +131,19 @@ int test4()
 	pool.dump();
 	cute_message message(&pool, 16);
 
-	std::cout << "original pool dump by for" << std::endl;
-	auto it = message.begin();
-	auto it_e = message.end();
-	for (; it != it_e; ++it)
-		std::cout << "raw_data: " << std::setbase(16) << static_cast<const void*>((*it).raw_data()) << " raw_data_len: " << (*it).raw_data_len() << std::endl;
+	auto writer_ptr = std::make_shared<writer>();
+	auto reader_ptr = std::make_shared<reader>();
 
-	std::cout << "original pool dump by std::for_each" << std::endl;
-	std::for_each(message.begin(), message.end(), [](cute_data_block& block)
+	std::cout << "data_block_writer" << std::endl;
+	std::for_each(message.begin(), message.end(), [&](cute_data_block& block)
 	{
-		std::cout << "raw_data: " << std::setbase(16) << static_cast<const void*>(block.raw_data()) << " raw_data_len: " << block.raw_data_len() << std::endl;
+		block.write(writer_ptr);
+	});
+
+	std::cout << "data_block_reader" << std::endl;
+	std::for_each(message.begin(), message.end(), [&](cute_data_block& block)
+	{
+		block.read(reader_ptr);
 	});
 
 	pool.fini();

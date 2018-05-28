@@ -57,16 +57,16 @@ public:
 		WRITE_INFO_LOG("echo_service_handler:handle_input, fd: " + std::to_string(fd)
 		+ " thread: " + thread_id_helper::exec());
 
-		size_t len = MAX_MSS_LEN;
-		size_t byte_translated = 0;
-		char buf[MAX_MSS_LEN] = { 0 };
+		u32 len = MAX_MSS_LEN;
+		u32 byte_translated = 0;
+		u8  buf[MAX_MSS_LEN] = { 0 };
 
 		this->socket_.recv(buf, len, &byte_translated);
 		if (byte_translated > 0)
 		{
 			std::string content = std::string(buf, buf + byte_translated);
 			WRITE_INFO_LOG("recv: " + content);
-			this->socket_.send(content.c_str(), content.length(), &byte_translated);			
+			this->socket_.send((u8*)content.c_str(), content.length(), &byte_translated);			
 		}
 		else 
 		{
@@ -90,7 +90,7 @@ public:
 
 		// send server time
 		auto to_send = std::to_string(this->now());
-		if (CUTE_ERR == this->socket_.send(to_send.c_str(), to_send.length(), nullptr)
+		if (CUTE_ERR == this->socket_.send((u8*)to_send.c_str(), to_send.length(), nullptr)
 			|| (INVALID_TIMER_ID == (this->timer_id_ = this->reactor_->register_timer(TIMER_INTERVAL, this->socket_.handle()))) )
 		{
 			this->close();

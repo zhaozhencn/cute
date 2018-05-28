@@ -46,9 +46,9 @@ public:
 	{
 		WRITE_INFO_LOG("my_service_handler:handle_input, fd: " + std::to_string(fd));
 
-		size_t len = 1024;
-		size_t byte_translated = 0;
-		char buf[1024] = { 0 };
+		u32 len = 1024;
+		u32  byte_translated = 0;
+		u8 buf[1024] = { 0 };
 		this->socket_.recv(buf, len, &byte_translated);
 		if (byte_translated > 0)
 		{
@@ -75,7 +75,7 @@ public:
 		static auto data = 1;
 		auto to_send = std::to_string(data);
 		WRITE_INFO_LOG("my_service_handler:handle_timeout, data: " + to_send);
-		this->socket_.send(to_send.c_str(), to_send.length(), nullptr);
+		this->socket_.send((u8*)to_send.c_str(), to_send.length(), nullptr);
 
 		if (data > 4)
 		{
