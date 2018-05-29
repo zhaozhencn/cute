@@ -10,20 +10,22 @@ int main()
 	pool.init(32, 5);
 	std::cout << "original dump: " << std::endl;
 	pool.dump();
-	auto p1 = pool.acquire();
-	std::cout << "after acquire: " << std::setbase(16) << static_cast<const void*>(p1) << " dump: " << std::endl;
-	pool.dump();
-	auto p2 = pool.acquire();
-        std::cout << "after acquire: " << std::setbase(16) << static_cast<const void*>(p2) << " dump: " << std::endl;
-        pool.dump();
 
-	std::cout << "release p1: " << static_cast<const void*>(p1) << " dump: " << std::endl;
-	pool.release(p1);
-	pool.dump();
+	u8* p[10] = {0};
 
-        std::cout << "release p2: " << static_cast<const void*>(p2) << " dump: " << std::endl;
-        pool.release(p2);
-        pool.dump();
+	for (auto i = 0; i < 5; ++i)
+	{
+		p[i] = pool.acquire();
+		std::cout << "time: " << i << " after acquire: " << std::setbase(16) << static_cast<const void*>(p[i]) << " dump: " << std::endl;
+		pool.dump();
+	}
+
+	for (auto i = 0; i < 5; ++i)
+	{
+	        std::cout << "time: " << i << " release p: " << static_cast<const void*>(p[i]) << " dump: " << std::endl;
+        	pool.release(p[i]);
+	        pool.dump();
+	}
 
 	pool.fini();
 	std::cout << "after fini dump: " << std::endl;

@@ -43,29 +43,29 @@ public:
 	u8* acquire()
 	{
 		std::lock_guard<std::mutex> guard(this->mutex_);
-		if (nullptr == this->header_ || nullptr == this->tail_)
-			return nullptr;
-		// if full then enlarge pool
-		if (this->header_ == this->tail_ && CUTE_ERR == this->enlarge_pool(this->enlarge_alloc_node_cnt_))
+		if (nullptr == this->header_ && CUTE_ERR == this->enlarge_pool(this->enlarge_alloc_node_cnt_))
 			return nullptr;
 		auto p = this->header_;
 		this->header_ = this->header_->next_;
+		if (this->tail_ && this->tail_->next_ == this->header_)	// move tail if header is nullptr
+			this->tail_ = this->header_;
 		return p->data();
 	}
 
 	i32 release(u8* p)
 	{
 		std::lock_guard<std::mutex> guard(this->mutex_);
-		if (nullptr == this->header_ || nullptr == this->tail_)
-			return CUTE_ERR;
 		p = p - node::DATA_OFFSET;
 		u16 magic = *(u16*)p;
 		if (node::MAGIC_DATA != magic)
 			return CUTE_ERR;
 		node* n = (node*)p;
 		n->~node();
-		this->tail_->next_ = (node*)p;
+		if (this->tail_)
+			this->tail_->next_ = (node*)p;
 		this->tail_ = (node*)p;
+		if (nullptr == this->header_)
+			this->header_ = this->tail_;
 		return CUTE_SUCC;
 	}
 
@@ -110,13 +110,9 @@ private:
 		{
 			if (nullptr == this->header_)
 				this->header_ = enlarge_header;
-			if (nullptr == this->tail_)
-				this->tail_ = enlarge_tail;
-			else
-			{
+			if (this->tail_)
 				this->tail_->next_ = enlarge_header;
-				this->tail_ = enlarge_header;
-			}
+			this->tail_ = enlarge_tail;
 			return CUTE_SUCC;
 		}
 
