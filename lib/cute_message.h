@@ -65,6 +65,8 @@ public:
 		return this->length_;
 	}
 
+	bool is_write_full();
+	u32 payload_length();
 	void reset();
 
 public:

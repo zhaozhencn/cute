@@ -62,7 +62,7 @@ class socket_sender : public data_block_reader
 public:
 	socket_sender(cute_socket& socket)
 	: socket_(socket)
-	, ret_(CUTE_ERR)
+	, ret_(CUTE_SUCC)
 	{
 	}
 
@@ -91,9 +91,10 @@ i32 cute_socket::send(cute_message& message, u32* byte_translated)
 	auto it_e = message.end();
 	for (; it != it_e; ++it)
 	{
-		cute_data_block& block = *it;
-		if (byte_translated)
-			*byte_translated += block.read(sender);
+		auto& block = *it;
+		auto ret = block.read(sender);
+		if (byte_translated && ret > 0)
+			*byte_translated += ret;
 		if (sender->ret() != CUTE_SUCC)
 			break;
 	};
@@ -105,7 +106,7 @@ class socket_receiver : public data_block_writer
 public:
 	socket_receiver(cute_socket& socket)
         : socket_(socket)
-	, ret_(CUTE_ERR)
+	, ret_(CUTE_SUCC)
         {
         }
 
@@ -134,8 +135,9 @@ i32 cute_socket::recv(cute_message& message, u32* byte_translated)
         for (; it != it_e; ++it)
         {
                 cute_data_block& block = *it;
-                if (byte_translated)
-                        *byte_translated += block.write(receiver);
+		auto ret = block.write(receiver);
+                if (byte_translated && ret > 0)
+                        *byte_translated += ret;
                 if (receiver->ret() != CUTE_SUCC)
                         break;
         };

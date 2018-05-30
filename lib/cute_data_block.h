@@ -125,6 +125,16 @@ public:
 		this->wp_ += actual_write;
 		return actual_write;  
 	}
+
+	bool is_write_full()
+	{
+		return this->wp_ == this->raw_data_len_;
+	}
+
+	u32 payload_length()
+	{
+		return this->wp_ - this->rp_;
+	}
   
 private:
 	u32 get_readable_space(u32 len)

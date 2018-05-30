@@ -17,6 +17,7 @@
 #include <atomic>
 #include <set>
 #include <new>
+#include <queue>
 
 // system
 #define LINUX	1

@@ -52,6 +52,24 @@ cute_message&& cute_message::operator = (cute_message&& src)
 	return std::move(*this);	
 }
 
+bool cute_message::is_write_full()
+{
+	u32 n = this->data_block_vec_.size();
+	if (0 == n)
+		return true;
+	return this->data_block_vec_[n - 1].is_write_full();
+}
+
+u32 cute_message::payload_length()
+{
+	u32 length = 0;
+	std::for_each(this->data_block_vec_.begin(), this->data_block_vec_.end(), [&](cute_data_block& block)
+	{
+		length += block.payload_length();
+	});
+	return length;
+}
+
 void cute_message::reset()
 {
 	this->write_vec_idx_ = this->read_vec_idx_ = 0;

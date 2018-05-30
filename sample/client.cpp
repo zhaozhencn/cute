@@ -22,7 +22,8 @@ class reader : public data_block_reader
 	{
         	std::cout << "read_buf: " << std::setbase(16) << static_cast<const void*>(read_buf) << " readable_bytes: " << readable_bytes << std::endl;
                 for (auto i = 0; i < readable_bytes; ++i)
-                        std::cout << read_buf[i] << std::endl;
+                        std::cout << read_buf[i];
+		std::cout << std::endl;
                 return readable_bytes;
         };
 };
@@ -59,11 +60,26 @@ public:
 			else if ( byte_translated > 0)
 			{
 				auto reader_ptr = std::make_shared<reader>();
+
+				/*
+ 				// read by data_block iterator
 				std::for_each(this->message_.begin(), this->message_.end(), [&](cute_data_block& block)
 				{
 					block.read(reader_ptr);
 				});
+				*/
 
+				// read by message
+				for (;;)
+				{
+					u8 ch = 0;
+					if (0 == this->message_.read(ch))
+						break;
+					std::cout << ch;
+				}
+
+				std::cout << std::endl;
+				
 				// reset message for reuse
 				this->message_.reset();
 

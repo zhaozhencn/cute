@@ -8,14 +8,19 @@
 #define TEST_SERVER
 #ifdef TEST_SERVER
 
-#define MAX_RECV_BUF	1024
+#define MAX_RECV_BUF	10
 #define TIMER_INTERVAL	5000
+
+#define TEST_TIMER 1
+
+cute_mem_pool* g_mem_pool_ptr = nullptr;
 
 class echo_service_handler : public cute_service_handler
 {
 public:
 	echo_service_handler()
 		: timer_id_(INVALID_TIMER_ID)
+		, message_(g_mem_pool_ptr, MAX_RECV_BUF)
 	{
 
 	}
@@ -28,13 +33,14 @@ public:
 		if (CUTE_ERR == ret)
 			return CUTE_ERR;
 
+		#ifdef TEST_TIMER
 		// register_timer		
 		this->timer_id_ = this->reactor_->register_timer(TIMER_INTERVAL, this->socket_.handle());
 		if (INVALID_TIMER_ID == this->timer_id_)
 		{
 			this->close();
 		}
-		
+		#endif
 
 		return 0;
 	}
@@ -57,20 +63,29 @@ public:
 		WRITE_INFO_LOG("echo_service_handler:handle_input, fd: " + std::to_string(fd)
 		+ " thread: " + thread_id_helper::exec());
 
-		u32 len = MAX_MSS_LEN;
-		u32 byte_translated = 0;
-		u8  buf[MAX_MSS_LEN] = { 0 };
+		for (;;)
+		{
+			u32 byte_translated = 0;
+			auto ret = this->socket_.recv(this->message_, &byte_translated);
+			if (ret == CUTE_ERR)
+			{
+				WRITE_INFO_LOG("recv CUTE_ERROR");
+				this->close();
+				break;
+			}
+			else 
+			{
+				if (this->message_.is_write_full())
+				{
+					WRITE_INFO_LOG("this->message_.is_write_full");
+					this->queue_.push(std::move(this->message_));
+					this->message_ = cute_message(g_mem_pool_ptr, MAX_RECV_BUF);
+					this->reply_message();
+				}
 
-		this->socket_.recv(buf, len, &byte_translated);
-		if (byte_translated > 0)
-		{
-			std::string content = std::string(buf, buf + byte_translated);
-			WRITE_INFO_LOG("recv: " + content);
-			this->socket_.send((u8*)content.c_str(), content.length(), &byte_translated);			
-		}
-		else 
-		{
-			this->close();		// peer is closed
+				if (ret == CUTE_RECV_BUF_EMPTY) 	// no more data in recv buff
+					break;
+			}
 		}
 
 		return 0;
@@ -80,6 +95,7 @@ public:
 	{
 		WRITE_INFO_LOG("echo_service_handler:handle_output, fd: " + std::to_string(fd)
 		+ " thread: " + thread_id_helper::exec());
+		this->reply_message();
 		return 0;
 	}
 
@@ -99,6 +115,23 @@ public:
 		return 0;
 	}
 
+	void reply_message()
+	{
+		WRITE_INFO_LOG("reply_message");
+		if (this->queue_.empty())
+			return;	
+		auto&& message = this->queue_.front();
+		u32 byte_translated = 0;
+		i32 ret = this->socket_.send(message, &byte_translated);
+		if (CUTE_ERR == ret)
+			this->close();
+		else if (message.payload_length() == 0)
+		{
+			WRITE_INFO_LOG("message.payload_length() == 0 and queue pop");
+			this->queue_.pop();
+		}
+	}
+
 protected:
 	u64 now()
 	{
@@ -109,11 +142,17 @@ protected:
 
 private:
 	u64 timer_id_;
+	std::queue<cute_message> queue_;
+	cute_message message_;
+	bool is_sending_;
 };
 
 
 i32 main()
 {
+	g_mem_pool_ptr = new cute_mem_pool();
+	g_mem_pool_ptr->init(12, 4);
+
 	cute_reactor reactor;
 	reactor.init();
 	auto acceptor = std::make_shared<cute_acceptor<echo_service_handler>>();
