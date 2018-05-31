@@ -91,7 +91,7 @@ public:
 	}
 
 protected:
-	std::shared_ptr<SERVICE_HANDLER> make_service_handler(cute_reactor* reactor)
+	virtual std::shared_ptr<SERVICE_HANDLER> make_service_handler(cute_reactor* reactor)
 	{
 		return std::make_shared<SERVICE_HANDLER>();
 	}
