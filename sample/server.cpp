@@ -8,10 +8,11 @@
 #define TEST_SERVER
 #ifdef TEST_SERVER
 
-#define MAX_RECV_BUF	10
+#define MAX_RECV_BUF	1024
 #define TIMER_INTERVAL	5000
 
 #define TEST_TIMER 1
+#define TEST_SEND_BUFF_FULL 1
 
 cute_mem_pool* g_mem_pool_ptr = nullptr;
 
@@ -39,6 +40,16 @@ public:
 		if (INVALID_TIMER_ID == this->timer_id_)
 		{
 			this->close();
+		}
+		#endif
+
+		#ifdef TEST_SEND_BUFF_FULL
+		for (auto i = 0; i < 10000; ++i)
+		{
+			auto m = cute_message(g_mem_pool_ptr, MAX_RECV_BUF);
+			while (!m.is_write_full())
+				m.write(i % 26 + 'A');
+			this->queue_.push(std::move(m));		
 		}
 		#endif
 
@@ -80,7 +91,10 @@ public:
 					WRITE_INFO_LOG("this->message_.is_write_full");
 					this->queue_.push(std::move(this->message_));
 					this->message_ = cute_message(g_mem_pool_ptr, MAX_RECV_BUF);
+
+#ifdef TEST_SEND_BUFF_FULL
 					this->reply_message();
+#endif
 				}
 
 				if (ret == CUTE_RECV_BUF_EMPTY) 	// no more data in recv buff
@@ -95,7 +109,11 @@ public:
 	{
 		WRITE_INFO_LOG("echo_service_handler:handle_output, fd: " + std::to_string(fd)
 		+ " thread: " + thread_id_helper::exec());
+
+#ifdef TEST_SEND_BUFF_FULL
 		this->reply_message();
+#endif
+
 		return 0;
 	}
 
@@ -122,14 +140,34 @@ public:
 			return;	
 		auto&& message = this->queue_.front();
 		u32 byte_translated = 0;
-		i32 ret = this->socket_.send(message, &byte_translated);
-		if (CUTE_ERR == ret)
-			this->close();
-		else if (message.payload_length() == 0)
+		i32 ret = CUTE_SUCC;
+		for (;;)
 		{
-			WRITE_INFO_LOG("message.payload_length() == 0 and queue pop");
-			this->queue_.pop();
+			ret = this->socket_.send(message, &byte_translated);
+			if (CUTE_ERR == ret)
+			{
+				this->close();
+				break;
+			}
+			else 
+			{
+                                if (CUTE_SEND_BUF_FULL == ret)          // send buff is full
+					WRITE_INFO_LOG("CUTE_SEND_BUF_FULL...........");
+
+				if (message.payload_length() == 0)	// curr message has been finished
+				{
+					WRITE_INFO_LOG("message.payload_length() == 0 and queue pop");
+					this->queue_.pop();
+				}				
+
+				if (CUTE_SEND_BUF_FULL == ret || message.payload_length() == 0)
+					break;
+			}
 		}
+
+		// try send remain message if previous operation has been completed succ
+		if (ret == CUTE_SUCC)
+			reply_message();
 	}
 
 protected:

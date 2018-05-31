@@ -61,15 +61,16 @@ public:
 			{
 				auto reader_ptr = std::make_shared<reader>();
 
-				/*
+				
  				// read by data_block iterator
 				std::for_each(this->message_.begin(), this->message_.end(), [&](cute_data_block& block)
 				{
 					block.read(reader_ptr);
 				});
-				*/
+				
 
 				// read by message
+				/*
 				for (;;)
 				{
 					u8 ch = 0;
@@ -77,6 +78,7 @@ public:
 						break;
 					std::cout << ch;
 				}
+				*/
 
 				std::cout << std::endl;
 				

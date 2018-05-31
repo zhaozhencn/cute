@@ -70,16 +70,18 @@ public:
 	void reset();
 
 public:
-	template<typename... T>
-	i32 read(T&&... data)
+	template<typename T,
+		typename = typename std::enable_if<!std::is_pointer<T>::value>>
+	i32 read(T&& data)
 	{
-		return this->read_i(std::forward<T>(data)...);
+		return this->read_i(std::forward<T>(data));
 	}
 
-	template<typename... T>
-	i32 write(T&&... data)
+	template<typename T,
+		typename = typename std::enable_if<!std::is_pointer<T>::value>>
+	i32 write(T&& data)
 	{
-		return this->write_i(std::forward<T>(data)...);
+		return this->write_i(std::forward<T>(data));
 	}
 	
 private:
