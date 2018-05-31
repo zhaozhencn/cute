@@ -182,43 +182,51 @@ public:
 
 	void send_file_content()
 	{
-		if (this->send_buf_.payload_length() == 0)		// has no data to send, read it from file
-		{	
-			auto file_reader_ptr = std::make_shared<file_reader>(this->file_);
-			std::for_each(this->send_buf_.begin(), this->send_buf_.end(), [&](cute_data_block& block)
-			{
-				block.write(file_reader_ptr);
-			});
-		}
-		
-		i32 ret = CUTE_SUCC;
-		for (;;)
+		auto file_reader_ptr = std::make_shared<file_reader>(this->file_);
+		while (this->total_sent_bytes_ < this->total_file_bytes_)
 		{
+			if (this->send_buf_.payload_length() == 0)
+			{
+				std::for_each(this->send_buf_.begin(), this->send_buf_.end(), [&](cute_data_block& block)
+				{
+					block.write(file_reader_ptr);
+				});
+			}
+		
+			i32 ret = CUTE_SUCC;
+			ret = this->send_data();
+			if (CUTE_ERR == ret)
+			{
+				WRITE_INFO_LOG("sent bytes: " + std::to_string(this->total_sent_bytes_) + " file bytes: " + std::to_string(this->total_file_bytes_));
+				this->close();
+				return;
+			}
+
+			if (0 == this->send_buf_.payload_length())	// reset for reuse
+				this->send_buf_.reset();
+			
+			if (CUTE_SEND_BUF_FULL == ret)
+				break;
+		}	
+
+		if (this->total_sent_bytes_ == this->total_file_bytes_)
+			WRITE_INFO_LOG("send operation has been completed succ");
+	}
+
+	i32 send_data()
+	{
+		for (;;)
+		{	
+			i32 ret = CUTE_SUCC;
 			u32 byte_translated = 0;
 			ret = this->socket_.send(this->send_buf_, &byte_translated);
 			if (CUTE_ERR == ret)
-			{
-				this->close();
-				break;
-			}
-			else
-			{
-				this->total_sent_bytes_ += byte_translated;
-				if (this->total_sent_bytes_ == this->total_file_bytes_)
-					WRITE_INFO_LOG("send operation has been completed succ");
-
-				if (this->send_buf_.payload_length() == 0)	// reset for reuse
-					this->send_buf_.reset();
-				
-				if (CUTE_SEND_BUF_FULL == ret || this->send_buf_.payload_length() == 0 || this->total_sent_bytes_ == this->total_file_bytes_)
-					break;
-			}			
+				return CUTE_ERR;
+			this->total_sent_bytes_ += byte_translated;
+			if (CUTE_SEND_BUF_FULL == ret || 0 == this->send_buf_.payload_length())
+				return ret;
 		}
-
-		// has not finish and previous operation has been completed succ, try send continues
-		if (this->total_sent_bytes_ < this->total_file_bytes_ && CUTE_SUCC == ret)
-			this->send_file_content();
-	}
+	}		
 
 private:
 	cute_message recv_buf_;
