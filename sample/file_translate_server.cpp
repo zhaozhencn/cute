@@ -90,6 +90,7 @@ public:
 		if (n < sizeof(u32))
 			return ret;
 
+		this->total_recv_bytes_ += this->recv_buf_.payload_length();
 		this->step_ = 1;			
 		auto file_writer_ptr = std::make_shared<file_writer>(this->file_);
 		std::for_each(this->recv_buf_.begin(), this->recv_buf_.end(), [&](cute_data_block& block)
@@ -129,6 +130,12 @@ public:
        	                if (ret == CUTE_RECV_BUF_EMPTY)         // no more data in recv buff
                	                break;
 		}	
+
+		if (this->total_file_bytes_ == this->total_recv_bytes_)
+		{
+			WRITE_INFO_LOG("************************ recv file successfully, recv bytes: " + std::to_string(this->total_recv_bytes_));
+			return CUTE_SUCC;
+		}
 
 		if (CUTE_SUCC == ret)
 			ret = this->recv_file_content();

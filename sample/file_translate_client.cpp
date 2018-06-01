@@ -185,7 +185,7 @@ public:
 		auto file_reader_ptr = std::make_shared<file_reader>(this->file_);
 		while (this->total_sent_bytes_ < this->total_file_bytes_)
 		{
-			if (this->send_buf_.payload_length() == 0)
+			if (0 == this->send_buf_.payload_length())	// no data to sent, read data from file
 			{
 				std::for_each(this->send_buf_.begin(), this->send_buf_.end(), [&](cute_data_block& block)
 				{
@@ -193,8 +193,7 @@ public:
 				});
 			}
 		
-			i32 ret = CUTE_SUCC;
-			ret = this->send_data();
+			auto ret = this->send_data();
 			if (CUTE_ERR == ret)
 			{
 				WRITE_INFO_LOG("sent bytes: " + std::to_string(this->total_sent_bytes_) + " file bytes: " + std::to_string(this->total_file_bytes_));
@@ -215,17 +214,15 @@ public:
 
 	i32 send_data()
 	{
-		for (;;)
-		{	
-			i32 ret = CUTE_SUCC;
+		i32 ret = CUTE_SUCC;
+		for (; CUTE_SUCC == ret && this->send_buf_.payload_length() > 0; )	// send succ and has more data to handle
+		{				
 			u32 byte_translated = 0;
 			ret = this->socket_.send(this->send_buf_, &byte_translated);
-			if (CUTE_ERR == ret)
-				return CUTE_ERR;
-			this->total_sent_bytes_ += byte_translated;
-			if (CUTE_SEND_BUF_FULL == ret || 0 == this->send_buf_.payload_length())
-				return ret;
+			if (CUTE_ERR != ret)
+				this->total_sent_bytes_ += byte_translated;
 		}
+		return ret;	
 	}		
 
 private:
