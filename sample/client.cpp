@@ -57,7 +57,8 @@ public:
 				this->close();
 				break;
 			}
-			else if ( byte_translated > 0)
+			
+			if ( byte_translated > 0)
 			{
 				auto reader_ptr = std::make_shared<reader>();
 
@@ -84,10 +85,10 @@ public:
 				
 				// reset message for reuse
 				this->message_.reset();
-
-				if (ret == CUTE_RECV_BUF_EMPTY) 	// no more data in recv buff
-					break;
 			}
+
+			if (ret == CUTE_RECV_BUF_EMPTY) 	// no more data in recv buff
+				break;
 		}
 
 		return 0;

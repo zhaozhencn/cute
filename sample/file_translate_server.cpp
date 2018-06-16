@@ -137,9 +137,6 @@ public:
 			return CUTE_SUCC;
 		}
 
-		if (CUTE_SUCC == ret)
-			ret = this->recv_file_content();
-
 		return ret;
 	}		
 
