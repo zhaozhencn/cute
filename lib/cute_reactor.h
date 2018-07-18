@@ -71,8 +71,8 @@ public:
 		}
 
 	private:
-		std::shared_ptr<cute_event_handler> handler_;
-		std::mutex							mutex_;
+		std::shared_ptr<cute_event_handler>	handler_;
+		std::mutex				mutex_;
 	};
 
 	// timer_handler proxy for sche_timer
@@ -106,9 +106,9 @@ private:
 	typedef std::map<i32, event_handler_proxy_ptr> event_handler_proxy_map;
 
 private:
-	cute_sche_timer			sche_timer_;
+	cute_sche_timer				sche_timer_;
 	cute_epoll				epoll_;
-	event_handler_proxy_map	map_;
+	event_handler_proxy_map			map_;
 	std::mutex				mutex_;
 };
 

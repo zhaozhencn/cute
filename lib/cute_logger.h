@@ -40,7 +40,7 @@ public:
 	}
 
 private:
-	i32			level_;
+	i32		level_;
 	std::mutex	mutex_;
 };
 

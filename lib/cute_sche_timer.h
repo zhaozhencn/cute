@@ -48,11 +48,11 @@ public:
 	}
 
 public:
-	u64						id_;
-	i32						full_interval_;
-	i32						lower_magnitude_interval_;
+	u64				id_;
+	i32				full_interval_;
+	i32				lower_magnitude_interval_;
 	timer_handler_ptr		handler_;
-	i32						status_;
+	i32				status_;
 
 public:
 	enum { VALID = 1, INVALID = 0 };
@@ -95,18 +95,18 @@ private:
 	void down_magnitude_timer_node_i(timer_node_ptr_t node);
 
 private:
-	u32							max_wheel_size_;
-	u32							magnitude_;
-	u32							curr_wheel_idx_;
+	u32				max_wheel_size_;
+	u32				magnitude_;
+	u32				curr_wheel_idx_;
 
 private:
 	timer_node_map_vec_t		vec_;
 	timer_wheel_idx_map_t		timer_wheel_idx_map_;
 	std::weak_ptr<timer_wheel>	lower_magnitude_wheel_ptr_;
-	cute_sche_timer*			sche_timer_;
+	cute_sche_timer*		sche_timer_;
 
 private:
-	std::mutex					mutex_;
+	std::mutex			mutex_;
 };
 
 
@@ -162,21 +162,21 @@ private:
 private:
 	typedef std::map<u32, std::shared_ptr<timer_wheel>>
 		timer_wheel_map_t;
-	timer_wheel_map_t					timer_wheel_map_;
-	u32									curr_tick_;
+	timer_wheel_map_t		timer_wheel_map_;
+	u32				curr_tick_;
 
-	typedef std::map<u64, u32>			timer_idx_wheel_map_t;		// map timer_id to timer_wheel
-	timer_idx_wheel_map_t				timer_idx_wheel_map_;
-	std::mutex							idx_wheel_map_mutex_;
+	typedef std::map<u64, u32>	timer_idx_wheel_map_t;		// map timer_id to timer_wheel
+	timer_idx_wheel_map_t		timer_idx_wheel_map_;
+	std::mutex			idx_wheel_map_mutex_;
 
 	friend class timer_wheel;
 
 private:
-	std::thread							thread_;
-	u32									curr_status_;
+	std::thread			thread_;
+	u32				curr_status_;
 
 private:
-	static std::atomic<u64>				timer_id_seed_;
+	static std::atomic<u64>		timer_id_seed_;
 };
 
 #endif
