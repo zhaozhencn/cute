@@ -63,9 +63,9 @@ class timer_wheel
 {
 public:
 	typedef std::shared_ptr<timer_node>		timer_node_ptr_t;
-	typedef std::map<u64, timer_node_ptr_t> timer_node_map_t;
-	typedef std::vector<timer_node_map_t>	timer_node_map_vec_t;
-	typedef std::map<u64, u32>				timer_wheel_idx_map_t;		// pair (timer_id, timer_wheel_idx)
+	typedef std::map<u64, timer_node_ptr_t> 	timer_node_map_t;
+	typedef std::vector<timer_node_map_t>		timer_node_map_vec_t;
+	typedef std::map<u64, u32>			timer_wheel_idx_map_t;		// pair (timer_id, timer_wheel_idx)
 
 public:
 	timer_wheel(u32 max_wheel_size, u32 magnitude, std::weak_ptr<timer_wheel> lower_magnitude_wheel_ptr, cute_sche_timer* sche_timer);

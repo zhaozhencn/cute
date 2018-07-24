@@ -214,7 +214,9 @@ void cute_sche_timer::close()
 u64 cute_sche_timer::register_timer(i32 interval, std::shared_ptr<timer_handler> handler)
 {	
 	WRITE_INFO_LOG("cute_sche_timer::register_timer thread: " + thread_id_helper::exec());
-	if (interval < TIMER_INTERVAL || interval > MAX_TIMER_INVTERVAL)
+	if (interval < TIMER_INTERVAL)
+		interval = TIMER_INTERVAL;
+	else if (interval > MAX_TIMER_INVTERVAL)
 		return INVALID_TIMER_ID;
 
 	u64 timer_id = this->timer_id_seed_++;

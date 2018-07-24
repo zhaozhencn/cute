@@ -150,8 +150,7 @@ i32 cute_message::read_i(i64& data)
 
 i32 cute_message::next_read_block()
 {
-	++this->read_vec_idx_;
-	return this->data_block_vec_.size() > this->read_vec_idx_ ? CUTE_SUCC : CUTE_ERR;
+	return this->data_block_vec_.size() > this->read_vec_idx_ ? (++this->read_vec_idx_, CUTE_SUCC) : CUTE_ERR;
 }
 
 // return the bytes read success (0 .. len)
@@ -209,7 +208,7 @@ i32 cute_message::write_i(i64 data)
 	return this->write_bytes_i((u8*)&data, i64_size);
 }
 
-
+// return the bytes written success (0 .. len)
 i32 cute_message::write_bytes_i(u8* data, u32 len)
 {
 	if (this->write_vec_idx_ >= this->data_block_vec_.size())
@@ -226,8 +225,7 @@ i32 cute_message::write_bytes_i(u8* data, u32 len)
 
 i32 cute_message::next_write_block()
 {
-        ++this->write_vec_idx_;
-        return this->data_block_vec_.size() > this->write_vec_idx_ ? CUTE_SUCC : CUTE_ERR;
+        return (this->data_block_vec_.size() > this->write_vec_idx_) ? (++this->write_vec_idx_, CUTE_SUCC) : CUTE_ERR;
 }
 
 
