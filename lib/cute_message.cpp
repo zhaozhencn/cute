@@ -4,8 +4,6 @@
 
 cute_message::cute_message(cute_mem_pool* pool, i32 len)
 	: pool_(pool)
-	, write_vec_idx_(0)
-	, read_vec_idx_(0)
 {
 	u32 node_payload_len = pool->node_payload_size();
 	u32 node_cnt = len / node_payload_len;
@@ -31,24 +29,15 @@ cute_message::~cute_message()
 cute_message::cute_message(cute_message&& src)
 : pool_(src.pool_)
 , data_block_vec_(std::move(src.data_block_vec_))
-, write_vec_idx_(src.write_vec_idx_)
-, read_vec_idx_(src.read_vec_idx_)
 {
 	src.pool_ = nullptr;
-	src.write_vec_idx_ = 0;
-	src.read_vec_idx_ = 0;
 }
 
 cute_message&& cute_message::operator = (cute_message&& src)
 {
 	this->pool_ = src.pool_;
 	this->data_block_vec_ = std::move(src.data_block_vec_);
-	this->write_vec_idx_ = src.write_vec_idx_;
-	this->read_vec_idx_ = src.read_vec_idx_;
-
 	src.pool_ = nullptr;
-	src.write_vec_idx_ = 0;
-	src.read_vec_idx_ = 0;
 	return std::move(*this);	
 }
 
@@ -72,13 +61,13 @@ u32 cute_message::payload_length()
 
 void cute_message::reset()
 {
-	this->write_vec_idx_ = this->read_vec_idx_ = 0;
 	std::for_each(this->data_block_vec_.begin(), this->data_block_vec_.end(), [](cute_data_block& block)
         {
                 block.reset();
         });
 }
 
+// implement data_block_iter
 cute_message::data_block_iter::data_block_iter(cute_message& message, u32 idx)
 	: message_(message)
 	, idx_(idx)
@@ -107,125 +96,79 @@ cute_message::data_block_iter cute_message::end()
 	return cute_message::data_block_iter(*this, this->data_block_vec_.size());
 }
 
-
-i32 cute_message::read_i(u8& data)
-{
-	return this->read_bytes_i((u8*)&data, u8_size);
-}
-
-i32 cute_message::read_i(u16& data)
-{
-	return this->read_bytes_i((u8*)&data, u16_size);
-}
-
-i32 cute_message::read_i(u32& data)
-{
-	return this->read_bytes_i((u8*)&data, u32_size);
-}
-
-i32 cute_message::read_i(u64& data)
-{
-	return this->read_bytes_i((u8*)&data, u64_size);
-}
-
-i32 cute_message::read_i(i8& data)
-{
-	return this->read_bytes_i((u8*)&data, u8_size);
-}
-
-i32 cute_message::read_i(i16& data)
-{
-	return this->read_bytes_i((u8*)&data, i16_size);
-}
-
-i32 cute_message::read_i(i32& data)
-{
-	return this->read_bytes_i((u8*)&data, i32_size);
-}
-
-i32 cute_message::read_i(i64& data)
-{
-	return this->read_bytes_i((u8*)&data, i64_size);
-}
-
-i32 cute_message::next_read_block()
-{
-	return this->data_block_vec_.size() > this->read_vec_idx_ ? (++this->read_vec_idx_, CUTE_SUCC) : CUTE_ERR;
-}
-
 // return the bytes read success (0 .. len)
 i32 cute_message::read_bytes_i(u8* data, u32 len)
 {
-	if (this->read_vec_idx_ >= this->data_block_vec_.size())
+	auto&& ref = this->data_block_vec_[0];
+	auto acture_read = ref.read((u8*)data, len);
+	if (ref.is_write_full() && 0 == ref.payload_length())	// current block has been read completed
+		this->move_first_block_to_last();
+	if (0 == acture_read)
 		return 0;
-	auto acture_read = this->data_block_vec_[this->read_vec_idx_].read((u8*)data, len);
-	if (len == acture_read)		// read succ
-		return len;
-	else
-	{
-		this->next_read_block();
+	else if (len == acture_read)
+		return len;	
+	else  
 		return this->read_bytes_i(data + acture_read, len - acture_read) + acture_read;	// read continue remain
-	}
 }
 
-i32 cute_message::write_i(u8 data)
+void cute_message::move_first_block_to_last()
 {
-	return this->write_bytes_i((u8*)&data, u8_size);
+	auto it = this->data_block_vec_.begin();
+	auto ele = *it;
+	this->data_block_vec_.erase(it);
+	ele.reset();
+	this->data_block_vec_.push_back(ele);
 }
 
-i32 cute_message::write_i(u16 data)
-{
-	return this->write_bytes_i((u8*)&data, u16_size);
-}
 
-i32 cute_message::write_i(u32 data)
+// peek_i
+i32 cute_message::peek_i(u8* data, u32 len, u32 peek_vec_idx)
 {
-	return this->write_bytes_i((u8*)&data, u32_size);
-}
-
-i32 cute_message::write_i(u64 data)
-{
-	return this->write_bytes_i((u8*)&data, u64_size);
-}
-
-i32 cute_message::write_i(i8 data)
-{
-	return this->write_bytes_i((u8*)&data, i8_size);
-}
-
-i32 cute_message::write_i(i16 data)
-{
-	return this->write_bytes_i((u8*)&data, i16_size);
-}
-
-i32 cute_message::write_i(i32 data)
-{
-	return this->write_bytes_i((u8*)&data, i32_size);
-}
-
-i32 cute_message::write_i(i64 data)
-{
-	return this->write_bytes_i((u8*)&data, i64_size);
+        if (peek_vec_idx >= this->data_block_vec_.size())
+                return 0;
+        auto acture_peek = this->data_block_vec_[peek_vec_idx].peek((u8*)data, len);
+        if (len == acture_peek)         // peek succ
+                return len;
+        else
+                return this->peek_i(data + acture_peek, len - acture_peek, peek_vec_idx + 1) + acture_peek; // peek continue remain
 }
 
 // return the bytes written success (0 .. len)
-i32 cute_message::write_bytes_i(u8* data, u32 len)
+i32 cute_message::write_bytes_i(u8* data, u32 len, u32 write_vec_idx)
 {
-	if (this->write_vec_idx_ >= this->data_block_vec_.size())
-		return 0;	
-	auto acture_write = this->data_block_vec_[this->write_vec_idx_].write((u8*)data, len);
+	if (write_vec_idx >= this->data_block_vec_.size())
+		return 0;
+	auto acture_write = this->data_block_vec_[write_vec_idx].write((u8*)data, len);
 	if (acture_write == len)	// write succ
 		return len;
 	else
-	{
-		this->next_write_block();
-		return this->write_bytes_i(data + acture_write, len - acture_write) + acture_write; // write continue remain
-	}
+		return this->write_bytes_i(data + acture_write, len - acture_write, write_vec_idx + 1) + acture_write; // write continue remain
 }
 
-i32 cute_message::next_write_block()
+// read and write 
+i32 cute_message::read(u8* data, u32 len)
 {
-        return (this->data_block_vec_.size() > this->write_vec_idx_) ? (++this->write_vec_idx_, CUTE_SUCC) : CUTE_ERR;
+	return this->read_bytes_i(data, len);
 }
+
+i32 cute_message::write(u8* data, u32 len)
+{
+	auto write_vec_idx = this->calc_write_vec_idx();
+	return (write_vec_idx == this->data_block_vec_.size()) ? 0 : this->write_bytes_i(data, len, write_vec_idx);
+}
+
+u32 cute_message::calc_write_vec_idx()
+{
+        u32 write_vec_idx = 0;
+        for(; write_vec_idx < this->data_block_vec_.size(); ++write_vec_idx)
+        {
+                if (!this->data_block_vec_[write_vec_idx].is_write_full())
+                        break;
+        }
+
+	return write_vec_idx;
+}
+
+
 
 

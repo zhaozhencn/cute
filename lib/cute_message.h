@@ -74,50 +74,38 @@ public:
 		typename = typename std::enable_if<!std::is_pointer<T>::value>>
 	i32 read(T&& data)
 	{
-		return this->read_i(std::forward<T>(data));
+		return this->read_bytes_i((u8*)&data, sizeof(data));
 	}
 
 	template<typename T,
 		typename = typename std::enable_if<!std::is_pointer<T>::value>>
 	i32 write(T&& data)
 	{
-		return this->write_i(std::forward<T>(data));
+	        auto write_vec_idx = this->calc_write_vec_idx();
+		return write_vec_idx == this->data_block_vec_.size() ? 0 : this->write_bytes_i((u8*)&data, sizeof(data), write_vec_idx);
 	}
-	
-private:
-	i32 read_i(u8& data);
-	i32 read_i(u16& data);
-	i32 read_i(u32& data);
-	i32 read_i(u64& data);
 
-	i32 read_i(i8& data);
-	i32 read_i(i16& data);
-	i32 read_i(i32& data);
-	i32 read_i(i64& data);
+	i32 read(u8* data, u32 len);
+	i32 write(u8* data, u32 len);
 
-	i32 write_i(u8 data);
-	i32 write_i(u16 data);
-	i32 write_i(u32 data);
-	i32 write_i(u64 data);
-
-	i32 write_i(i8 data);
-	i32 write_i(i16 data);
-	i32 write_i(i32 data);
-	i32 write_i(i64 data);
+public:
+       	template<typename T,
+                typename = typename std::enable_if<!std::is_pointer<T>::value>>
+        i32 peek(T&& data)
+        {
+                return this->peek_i((u8*)&data, sizeof(data), 0);
+        }
 
 private:
-	i32 write_bytes_i(u8 * data, u32 len);
-	i32 next_write_block();
-
+	i32 peek_i(u8* data, u32 len, u32 peek_vec_idx);
+	i32 write_bytes_i(u8 * data, u32 len, u32 write_vec_idx);
 	i32 read_bytes_i(u8* data, u32 len);
-	i32 next_read_block();
-
+	void move_first_block_to_last();
+	u32 calc_write_vec_idx();
 
 private:
 	cute_mem_pool*			pool_;
 	std::vector<cute_data_block>	data_block_vec_;
-	u32				write_vec_idx_;
-	u32				read_vec_idx_;
 	u32				length_;
 
 	friend class data_block_iter;

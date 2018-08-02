@@ -101,6 +101,14 @@ public:
 		return writeable;
 	}
 
+	u32 peek(u8* data, u32 len)
+	{
+		auto peekable = this->get_readable_space(len);
+                if (peekable)
+                        memcpy(data, this->raw_data_ + this->rp_, peekable);
+                return peekable;
+	}
+
 	// read or write by implement interface
 	u32 read(data_block_reader_ptr reader)
 	{

@@ -16,7 +16,9 @@ int test1()
 	for (i32 i = 0; i < 5; ++i)
 	{
 		i32 data = 0;
-		auto ret = message.read(data);
+		auto ret = message.peek(data);
+		std::cout << "message.peek: " << data << " ret: " << ret << std::endl;
+		ret = message.read(data);
 		std::cout << "message.read: " << data << " ret: " << ret << std::endl;
 	}
 	pool.fini();
@@ -43,11 +45,15 @@ int test2()
         for (i32 i = 0; i < 5; ++i)
         {
                 u8 ch = 0;
-                auto ret = message.read(ch);
+		auto ret = message.peek(ch);
+		std::cout << "message.peek: " << ch << " ret: " << ret << std::endl;
+                ret = message.read(ch);
                 std::cout << "message.read: " << ch << " ret: " << ret << std::endl;
         }
 
 	data = 0;
+	ret = message.peek(data);
+	std::cout << "message.peek: " << data << " ret: " << ret << std::endl;
 	ret = message.read(data);
         std::cout << "message.read: " << data << " ret: " << ret << std::endl;
 
@@ -150,6 +156,36 @@ int test4()
 	return 0;
 }
 
+// test read and write bytes
+int test5()
+{
+        cute_mem_pool pool;
+        pool.init(12, 2);
+        cute_message message(&pool, 16); //  message payload byte : 8 (2 int) 
+
+	for (int t = 0; t < 3; ++t)
+	{
+	        for (i32 i = t; i < t + 5; ++i)
+        	{
+                	auto ret = message.write((u8*)&i, sizeof(i32));
+	                std::cout << "message.write: " << i << " ret: " << ret << std::endl;
+        	}
+
+	        for (i32 i = t; i < t + 5; ++i)
+        	{
+	                i32 data = 0;
+                	auto ret = message.peek(data);
+        	        std::cout << "--- message.peek: " << data << " ret: " << ret << std::endl;
+                	ret = message.read((u8*)&data, sizeof(i32));
+	                std::cout << "+++ message.read: " << data << " ret: " << ret << std::endl;
+        	}
+	}	
+
+        pool.fini();
+
+        return 0;
+}
+
 int main()
 {
 	std::cout << "test1" << std::endl;
@@ -160,6 +196,9 @@ int main()
 	test3();
 	std::cout << "test4" << std::endl;
 	test4();
+	std::cout << "test5" << std::endl;
+        test5();
+
 	return 0;
 }
 

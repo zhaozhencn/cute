@@ -160,6 +160,7 @@ public:
 
 	i32 prepare_file()
 	{
+		WRITE_INFO_LOG("preapre_file");
 		this->file_ = std::ifstream(this->file_path_, std::ios::in|std::ios::binary);
 		if (this->file_.is_open())
 		{
@@ -173,6 +174,7 @@ public:
 
 	i32 send_file_size()
 	{
+		WRITE_INFO_LOG("send_file_size");
 		u32 byte_translated = 0;
 		this->send_buf_.write(this->total_file_bytes_);
 		i32 ret = this->socket_.send(this->send_buf_, &byte_translated);

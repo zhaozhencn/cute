@@ -1,0 +1,12 @@
+package tutorial;
+
+message Persion {
+    required string name = 1;
+    required int32 age = 2;
+}
+
+message AddressBook {
+    repeated Persion persion = 1;
+}
+
+
