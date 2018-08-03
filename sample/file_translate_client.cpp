@@ -161,7 +161,7 @@ public:
 	i32 prepare_file()
 	{
 		WRITE_INFO_LOG("preapre_file");
-		this->file_ = std::ifstream(this->file_path_, std::ios::in|std::ios::binary);
+		this->file_.open(this->file_path_, std::ios::in|std::ios::binary);
 		if (this->file_.is_open())
 		{
 			this->file_.seekg(0, std::ios_base::end);

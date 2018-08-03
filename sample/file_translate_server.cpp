@@ -43,7 +43,7 @@ public:
 		, total_recv_bytes_(0)
 		, total_file_bytes_(0)
 	{
-		this->file_ = std::ofstream("./recv_file", std::ios::binary | std::ios::out | std::ios::trunc);
+		this->file_.open("./recv_file", std::ios::binary | std::ios::out | std::ios::trunc);
 	}
 
 	virtual i32 open(const cute_socket& socket, cute_reactor* reactor)
