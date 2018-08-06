@@ -28,7 +28,8 @@ public:
 		{
 			std::string proto(proto_len, 0);
 			u8* buf = (u8*)proto.c_str();
-			message.read(proto_len);	// read head
+			std::cout << "skip len: " << HEAD_SIZE << std::endl;
+			message.skip_read(HEAD_SIZE);	// skip read
 			message.read(buf, proto_len);	// read content
 			tutorial::AddressBook book;
 			std::cout << buf << std::endl;

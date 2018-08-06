@@ -109,6 +109,13 @@ public:
                 return peekable;
 	}
 
+	u32 skip_read(u32 len)
+	{
+		auto skip = this->get_readable_space(len);
+		this->rp_ += skip;
+		return skip;
+	}
+
 	// read or write by implement interface
 	u32 read(data_block_reader_ptr reader)
 	{

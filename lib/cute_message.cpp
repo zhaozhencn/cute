@@ -169,6 +169,26 @@ u32 cute_message::calc_write_vec_idx()
 	return write_vec_idx;
 }
 
+// skip bytes for read (0 .. len)
+i32 cute_message::skip_read(u32 len)
+{
+	return this->skip_read_i(len);
+}
+
+i32 cute_message::skip_read_i(u32 len)
+{
+        auto&& ref = this->data_block_vec_[0];
+        auto acture_skip = ref.skip_read(len);
+        if (ref.is_write_full() && 0 == ref.payload_length())   // current block has been read completed
+                this->move_first_block_to_last();
+        if (0 == acture_skip)
+                return 0;
+        else if (len == acture_skip)
+                return len;
+        else
+                return this->skip_read_i(len - acture_skip) + acture_skip; // skip read continue remain
+
+}
 
 
 

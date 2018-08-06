@@ -87,6 +87,7 @@ public:
 
 	i32 read(u8* data, u32 len);
 	i32 write(u8* data, u32 len);
+	i32 skip_read(u32 len);
 
 public:
        	template<typename T,
@@ -102,6 +103,7 @@ private:
 	i32 read_bytes_i(u8* data, u32 len);
 	void move_first_block_to_last();
 	u32 calc_write_vec_idx();
+	i32 skip_read_i(u32 len);
 
 private:
 	cute_mem_pool*			pool_;
