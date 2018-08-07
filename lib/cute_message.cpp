@@ -103,9 +103,11 @@ i32 cute_message::read_bytes_i(u8* data, u32 len)
 	auto acture_read = ref.read((u8*)data, len);
 	if (ref.is_write_full() && 0 == ref.payload_length())	// current block has been read completed
 		this->move_first_block_to_last();
-	if (0 == acture_read)
+	if (acture_read > len)		// return error
 		return 0;
-	else if (len == acture_read)
+	else if (0 == acture_read)	// no data to read
+		return 0;
+	else if (len == acture_read)	// finish read succ
 		return len;	
 	else  
 		return this->read_bytes_i(data + acture_read, len - acture_read) + acture_read;	// read continue remain
@@ -127,7 +129,9 @@ i32 cute_message::peek_i(u8* data, u32 len, u32 peek_vec_idx)
         if (peek_vec_idx >= this->data_block_vec_.size())
                 return 0;
         auto acture_peek = this->data_block_vec_[peek_vec_idx].peek((u8*)data, len);
-        if (len == acture_peek)         // peek succ
+	if (acture_peek > len)		// return error
+		return 0;	
+        else if (acture_peek == len)   	// peek succ
                 return len;
         else
                 return this->peek_i(data + acture_peek, len - acture_peek, peek_vec_idx + 1) + acture_peek; // peek continue remain
@@ -139,7 +143,9 @@ i32 cute_message::write_bytes_i(u8* data, u32 len, u32 write_vec_idx)
 	if (write_vec_idx >= this->data_block_vec_.size())
 		return 0;
 	auto acture_write = this->data_block_vec_[write_vec_idx].write((u8*)data, len);
-	if (acture_write == len)	// write succ
+	if (acture_write > len)		// return error 
+		return 0;	
+	else if (acture_write == len)	// write succ
 		return len;
 	else
 		return this->write_bytes_i(data + acture_write, len - acture_write, write_vec_idx + 1) + acture_write; // write continue remain
@@ -181,9 +187,11 @@ i32 cute_message::skip_read_i(u32 len)
         auto acture_skip = ref.skip_read(len);
         if (ref.is_write_full() && 0 == ref.payload_length())   // current block has been read completed
                 this->move_first_block_to_last();
-        if (0 == acture_skip)
+	if (acture_skip > len)		// return error
+		return 0;
+        else if (0 == acture_skip)	// no data to skip
                 return 0;
-        else if (len == acture_skip)
+        else if (len == acture_skip)	// skip succ
                 return len;
         else
                 return this->skip_read_i(len - acture_skip) + acture_skip; // skip read continue remain
