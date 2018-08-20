@@ -90,8 +90,8 @@ public:
 	i32 skip_read(u32 len);
 
 public:
-       	template<typename T,
-                typename = typename std::enable_if<!std::is_pointer<T>::value>>
+	template<typename T,
+		typename = typename std::enable_if<!std::is_pointer<T>::value>>
         i32 peek(T&& data)
         {
                 return this->peek_i((u8*)&data, sizeof(data), 0);
