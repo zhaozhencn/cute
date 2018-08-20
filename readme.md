@@ -71,64 +71,6 @@ Using the new features of C++ 11(14) (prefect-forward, universal reference, move
 ##### ./sample/server &
 ##### ./sample/client 127.0.0.1 11000
 
-### file_translate sample:
 
-#### file_translate_client:
-
-	i32 main(i32 argc, char* argv[])
-	{
-		if (argc < 4)
-		{
-			std::cout << "usage: client <host> <port> <file_path>" << std::endl;
-			return 0;
-		}
-
-		g_mem_pool_ptr = new cute_mem_pool();
-		g_mem_pool_ptr->init(ALLOC_NODE_SIZE, ALLOC_NODE_COUNT);
-
-		cute_reactor reactor;
-		reactor.init();
-		auto connector = std::make_shared<file_cute_connector>(argv[3]);
-		cute_net_addr addr(argv[1], std::atoi(argv[2]));
-		connector->connect(addr, &reactor);
-		reactor.run_loop();
-		return 0;
-	
-#### file_translate_server
-	i32 main()
-	{
-		g_mem_pool_ptr = new cute_mem_pool();
-		g_mem_pool_ptr->init(ALLOC_NODE_SIZE, ALLOC_NODE_COUNT);
-
-		cute_reactor reactor;	
-		reactor.init();
-		auto acceptor = std::make_shared<cute_acceptor<file_translate_handler>>();
-		cute_net_addr addr("0.0.0.0", 11000);
-		acceptor->open(addr, &reactor);
-
-		// try multiple thread event demultiplexed and dispatch
-		std::thread t1 = std::thread([&reactor]()
-		{
-			reactor.run_loop();
-		});
-
-		std::thread t2 = std::thread([&reactor]()
-		{
-			reactor.run_loop();
-		});
-
-		t1.join();
-		t2.join();
-
-		return 0;
-	}
-	
-#### compile it and run sample
-##### cd <setup_folder>/cute
-##### cmake -DCMAKE_BUILD_TYPE=Debug .
-##### make 
-##### ./sample/file_translate_server &
-##### ./sample/file_translate_client 127.0.0.1 11000 <to_send_file_name>
-	
 # enjoy it ^-^
 
