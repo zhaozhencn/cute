@@ -83,7 +83,7 @@ protected:
 
 private:
 	cute_socket_acceptor	socket_acceptor_;
-	cute_reactor*			reactor_;
+	cute_reactor*		reactor_;
 };
 
 

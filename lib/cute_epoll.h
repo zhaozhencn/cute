@@ -49,7 +49,7 @@ public:
 	i32 wait(i32 wait_for_mill_secs, std::list<cute_epoll_event> &event_list);
 
 private:
-	i32				epfd_;
+	i32			epfd_;
 	epoll_event		events_[MAX_EPOLL_EVENTS];
 	
 private:

@@ -25,5 +25,23 @@ public:
 	}
 };
 
+class null_mutex
+{
+public:
+	void lock() 
+	{
+	} 
+
+	void unlock() noexcept 
+	{
+	} 
+
+	bool try_lock() 
+	{
+		return true; 
+	} 
+};
+
+
 #endif
 

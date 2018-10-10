@@ -5,18 +5,26 @@
 #include "config.h"
 #include "util.h"
 
+
+#define LOG_LEVEL_NONE		10
+#define LOG_LEVEL_ERROR		3 
+#define LOG_LEVEL_DEBUG		2
+#define LOG_LEVEL_INFO		1
+
+template<typename LOCK>
 class cute_logger
 {
 public:
-	enum { NONE = 10, ERROR = 3, DEBUG = 2, INFO = 1};
-	cute_logger(i32 level = INFO);
-	~cute_logger();
+	cute_logger(i32 level = LOG_LEVEL_INFO) 
+	: level_(level)
+	{
+	}
 
 public:
 	template<typename T>
 	void write(T&& log, i32 level)
 	{
-		std::lock_guard<std::mutex> guard(this->mutex_);
+		std::lock_guard<LOCK> guard(this->mutex_);
 		if (level >= this->level_)
 			std::cout << std::forward<T>(log) << std::endl;
 	}
@@ -26,13 +34,13 @@ public:
 	{
 		switch (level)
 		{
-		case NONE:
+		case LOG_LEVEL_NONE:
 			return "NONE";
-		case INFO:
+		case LOG_LEVEL_INFO:
 			return "INFO";
-		case DEBUG: 
+		case LOG_LEVEL_DEBUG: 
 			return "DEBUG";
-		case ERROR:
+		case LOG_LEVEL_ERROR:
 			return "ERROR";
 		default:
 			return "UNKNOWN";
@@ -41,7 +49,7 @@ public:
 
 private:
 	i32		level_;
-	std::mutex	mutex_;
+	LOCK		mutex_;
 };
 
 
@@ -56,7 +64,7 @@ public:
 	}
 };
 
-typedef singleton<cute_logger> cute_logger_singleton;
+typedef singleton<cute_logger<std::mutex>> cute_logger_singleton;
 
 
 #define WRITE_LOG(log, level) \
@@ -71,13 +79,13 @@ typedef singleton<cute_logger> cute_logger_singleton;
 
 
 #define WRITE_INFO_LOG(log)	\
-	WRITE_LOG(log, cute_logger::INFO)
+	WRITE_LOG(log, LOG_LEVEL_INFO)
 
 #define WRITE_DEBUG_LOG(log)	\
-	WRITE_LOG(log, cute_logger::DEBUG)
+	WRITE_LOG(log, LOG_LEVEL_DEBUG)
 
 #define WRITE_ERROR_LOG(log)	\
-	WRITE_LOG(log, cute_logger::ERROR)
+	WRITE_LOG(log, LOG_LEVEL_ERROR)
 
 
 #endif
