@@ -115,13 +115,11 @@ i32 cute_reactor::remove_handler(const cute_socket_acceptor & socket)
 
 u64 cute_reactor::register_timer(i32 interval, i32 fd)
 {
-	WRITE_INFO_LOG("cute_reactor::register_timer" + thread_id_helper::exec());
+	WRITE_INFO_LOG("cute_reactor::register_timer thread: " + thread_id_helper::exec());
 
 	try
 	{
-		auto handler_proxy = this->get_handler_proxy(fd);
-		auto weak_ptr = std::weak_ptr<cute_reactor::cute_event_handler_proxy>(handler_proxy);
-		auto timer_handler = std::make_shared<cute_reactor_timer_handler>(weak_ptr);
+		auto timer_handler = this->get_handler_proxy(fd);
 		return this->sche_timer_.register_timer(interval, timer_handler);
 	}
 	catch (i32 fd)
@@ -129,6 +127,13 @@ u64 cute_reactor::register_timer(i32 interval, i32 fd)
 		WRITE_ERROR_LOG("map NOT exist socket, fd: " + std::to_string(fd) + " thread: " + thread_id_helper::exec());
 		return INVALID_TIMER_ID;
 	}
+}
+
+u64 cute_reactor::register_timer(i32 interval, std::shared_ptr<cute_event_handler> handler)
+{
+	 WRITE_INFO_LOG("cute_reactor::register_timer" + thread_id_helper::exec());
+	 auto timer_handler = std::make_shared<cute_reactor::cute_event_handler_proxy>(handler);
+         return this->sche_timer_.register_timer(interval, timer_handler);
 }
 
 i32 cute_reactor::remove_timer(u64 timer_id)

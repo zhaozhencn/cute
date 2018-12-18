@@ -42,6 +42,27 @@ public:
 	} 
 };
 
+class backoff 
+{
+public:
+	backoff(i32 max_idx = DEFAULT_MAX_BACK_OFF)
+	: max_idx_(max_idx)
+	, curr_idx_(0)
+	{		
+	}
 
+	i32 get() 
+	{
+		i32 ret = (1 << this->curr_idx_);
+		if (this->curr_idx_ < this->max_idx_)
+			 ++this->curr_idx_;
+		return ret;
+	}
+
+private:
+	i32 max_idx_;
+	i32 curr_idx_;
+};
+	
 #endif
 

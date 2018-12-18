@@ -7,6 +7,12 @@
 class cute_net_addr
 {
 public:
+	cute_net_addr()
+		: ip_(ANY_IP)
+		, port_(DEFAULT_PORT)
+	{
+	}
+
 	cute_net_addr(const std::string& ip, u16 port)
 	{
 		this->set(ip, port);

@@ -77,7 +77,7 @@ public:
 		WRITE_INFO_LOG("my_service_handler:handle_timeout, data: " + to_send);
 		this->socket_.send((u8*)to_send.c_str(), to_send.length(), nullptr);
 
-		if (data > 4)
+		if (data > 40000)
 		{
 			WRITE_INFO_LOG("it is time to exit, data: " + to_send);
 			this->close();
@@ -109,13 +109,25 @@ i32 main(i32 argc, char* argv[])
 
 	cute_reactor reactor;
 	reactor.init();
+	std::thread thread = std::thread([&]()
+        {
+		reactor.run_loop();
+	});
+
+	std::chrono::milliseconds duration(1000 * 3);
+	std::this_thread::sleep_for(duration);
+
 	auto connector = std::make_shared<cute_connector<my_service_handler>>();
 	cute_net_addr addr(argv[1], std::atoi(argv[2]));
 	auto num = std::atoi(argv[3]);
+	int retry_times = 4;
 	for (auto i = 0; i < num; ++i)
-		connector->connect(addr, &reactor);
-	reactor.run_loop();
-    return 0;
+		connector->connect(addr, &reactor, retry_times);
+
+	std::chrono::milliseconds duration2(1000 * 3600 * 24 * 7);
+	std::this_thread::sleep_for(duration2);	
+	
+	return 0;
 }
 
 

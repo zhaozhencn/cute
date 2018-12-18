@@ -8,6 +8,7 @@
 #include "cute_reactor.h"
 #include "cute_logger.h"
 #include "config.h"
+#include "util.h"
 
 template<typename SERVICE_HANDLER>
 class cute_connector : public cute_event_handler
@@ -15,6 +16,7 @@ class cute_connector : public cute_event_handler
 public:
 	cute_connector()
 		: reactor_(nullptr)
+		, retry_times_(0)
 	{
 	}
 
@@ -24,17 +26,30 @@ public:
 	}
 
 public:
-	i32 connect(const cute_net_addr& remote_addr, cute_reactor* reactor)
+	i32 connect(const cute_net_addr& remote_addr, cute_reactor* reactor, int retry_times = 0) 
+	{
+		this->remote_addr_ = remote_addr;
+		this->reactor_ = reactor;
+		this->retry_times_ = retry_times;
+		i32 ret = this->connect_i(this->remote_addr_, this->reactor_);
+		if (ret == CUTE_ERR && retry_times > 0)
+			this->retry_sche_connect();
+		return ret;
+	}
+
+
+protected:
+	i32 connect_i(const cute_net_addr& remote_addr, cute_reactor* reactor)
 	{
 		WRITE_INFO_LOG("cute_connector::connect");
 		cute_socket_connector connector;
 		i32 ret = connector.connect(remote_addr);		// non-blocked connect
 		if (CUTE_ERR == ret)
 		{
-			WRITE_ERROR_LOG("connector.connect" + remote_addr.str());
+			WRITE_ERROR_LOG("connector.connect: " + remote_addr.str());
 			return CUTE_ERR;
 		}
-		else if (CUTE_SUCC == ret)						// if connect completed immediately
+		else if (CUTE_SUCC == ret)				// if connect completed immediately
 		{
 			WRITE_INFO_LOG("connect completed immediately");
 			std::shared_ptr<cute_service_handler> handler = this->make_service_handler(reactor);
@@ -56,11 +71,17 @@ public:
 				socket.close();
 				return CUTE_ERR;
 			}
-
-			this->reactor_ = reactor;
 		}
 
-		return CUTE_SUCC;
+		return ret;
+	}
+
+
+public:
+	virtual i32 handle_input(i32 fd)
+	{
+		 WRITE_INFO_LOG("cute_connector::handle_input, fd: " + std::to_string(fd));
+		 return this->handle_output(fd);
 	}
 
 	virtual i32 handle_output(i32 fd)
@@ -76,6 +97,7 @@ public:
 		{
 			WRITE_ERROR_LOG("getsockopt SOL_SOCKET SO_ERROR");
 			socket.close();
+			this->retry_sche_connect();
 			return CUTE_ERR;
 		}
 
@@ -84,10 +106,31 @@ public:
 		{
 			WRITE_ERROR_LOG("handler->open");
 			socket.close();
+			this->retry_sche_connect();
 			return CUTE_ERR;
 		}
 
 		return CUTE_SUCC;
+	}
+
+	virtual i32 handle_timeout(u64 id)
+	{
+		i32 ret = this->connect_i(this->remote_addr_, this->reactor_);
+		if (ret == CUTE_ERR)  
+		{
+			WRITE_ERROR_LOG("connect_i failed in handle_timeout");
+			this->retry_sche_connect();
+		}
+
+		return CUTE_SUCC;
+	}
+
+protected:
+	void retry_sche_connect() 
+	{
+		WRITE_INFO_LOG("retry_sche_connect. retry_times: " + std::to_string(this->retry_times_));
+		if (this->retry_times_-- > 0 && this->reactor_)
+			this->reactor_->register_timer(this->back_off_.get() * 1000, shared_from_this());
 	}
 
 protected:
@@ -97,7 +140,10 @@ protected:
 	}
 
 private:
+	cute_net_addr	remote_addr_;
 	cute_reactor*	reactor_;
+	int		retry_times_;
+	backoff 	back_off_;
 };
 
 

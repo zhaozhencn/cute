@@ -28,6 +28,7 @@ public:
 
 public:
 	u64 register_timer(i32 interval, i32 fd);
+	u64 register_timer(i32 interval, std::shared_ptr<cute_event_handler> handler);
 	i32 remove_timer(u64 timer_id);
 
 public:	
@@ -35,8 +36,8 @@ public:
 	void run();
 
 public:
-	// handler proxy for cute_event_handler
-	class cute_event_handler_proxy : public cute_event_handler
+	// handler proxy for both cute_event_handler and timer_handler
+	class cute_event_handler_proxy : public cute_event_handler, public timer_handler
 	{
 	public:
 		cute_event_handler_proxy(std::shared_ptr<cute_event_handler> handler)
@@ -70,32 +71,15 @@ public:
 			return this->handler_->handle_close(fd);
 		}
 
+	public:
+		virtual i32 exec()  // for sche_timer
+                {
+			return this->handle_timeout(this->id_);
+		}
+
 	private:
 		std::shared_ptr<cute_event_handler>	handler_;
 		std::mutex				mutex_;
-	};
-
-	// timer_handler proxy for sche_timer
-	class cute_reactor_timer_handler : public timer_handler
-	{
-	public:
-		cute_reactor_timer_handler(std::weak_ptr<cute_event_handler_proxy> weak_handler)
-			: weak_handler_(weak_handler)
-		{
-
-		}
-
-		virtual i32 exec()
-		{
-			auto handler = this->weak_handler_.lock();
-			if (handler)
-				return handler->handle_timeout(this->id_);
-			else
-				return CUTE_ERR;
-		}
-
-	private:
-		std::weak_ptr<cute_event_handler_proxy> weak_handler_;
 	};
 
 private:

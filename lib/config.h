@@ -43,7 +43,10 @@ typedef int64_t				i64;
 
 #define INVALID_TIMER_ID		0
 
+#define ANY_IP				"0.0.0.0"
+#define DEFAULT_PORT			0
 
+#define DEFAULT_MAX_BACK_OFF		4
 
 #endif
 
