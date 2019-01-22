@@ -4,6 +4,7 @@
 #include "cute_event_handler.h"
 #include "cute_logger.h"
 #include "util.h"
+#include "cute_env.h"
 
 cute_reactor::cute_reactor()
 {
@@ -18,13 +19,7 @@ i32 cute_reactor::init()
 {
 	WRITE_INFO_LOG("cute_reactor::init, thread: " + thread_id_helper::exec());
 
-	// ignore SIG_PIPE broken signal
-	struct sigaction sa;
-	sa.sa_handler = SIG_IGN;
-	sa.sa_flags = 0;
-	if ((sigemptyset(&sa.sa_mask) == -1) || sigaction(SIGPIPE, &sa, 0) == -1)
-		return CUTE_ERR;
-
+	cute_env::init();
 	this->epoll_.open();
 	this->sche_timer_.open();
 	return CUTE_SUCC;
@@ -146,7 +141,7 @@ i32 cute_reactor::remove_timer(u64 timer_id)
 void cute_reactor::run_loop()
 {
 	WRITE_INFO_LOG("cute_reactor::run_loop, thread: " + thread_id_helper::exec());
-	for (;;)
+	for (; !cute_env::is_shutdown_; )
 	{
 		this->run();
 	}

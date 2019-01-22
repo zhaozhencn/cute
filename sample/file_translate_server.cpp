@@ -179,8 +179,9 @@ i32 main()
 
 	t1.join();
 	t2.join();
-
-    return 0;
+	
+	reactor.fini();
+	return 0;
 }
 
 

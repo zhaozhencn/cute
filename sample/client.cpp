@@ -122,7 +122,8 @@ i32 main(i32 argc, char* argv[])
 	for (auto i = 0; i < num; ++i)
 	connector->connect(addr, &reactor);
 	reactor.run_loop();
-    return 0;
+	reactor.fini();
+	return 0;
 }
 
 

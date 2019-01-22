@@ -254,6 +254,7 @@ i32 main(i32 argc, char* argv[])
 	cute_net_addr addr(argv[1], std::atoi(argv[2]));
 	connector->connect(addr, &reactor);
 	reactor.run_loop();
+	reactor.fini();
 	return 0;
 }
 

@@ -19,7 +19,7 @@ public:
 	virtual void close();
 
 protected:
-	cute_socket		socket_;
+	cute_socket	socket_;
 	cute_reactor*	reactor_;
 };
 
