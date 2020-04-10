@@ -18,6 +18,7 @@
 #include <set>
 #include <new>
 #include <queue>
+#include <unordered_map>
 
 // system
 #define LINUX	1
