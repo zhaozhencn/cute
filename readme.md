@@ -65,11 +65,21 @@ Using the new features of C++ 11(14) (prefect-forward, universal reference, move
     }
 
 #### compile it and run sample
-##### cd <setup_folder>/cute
-##### cmake -DCMAKE_BUILD_TYPE=Debug .
-##### make 
-##### ./sample/server &
-##### ./sample/client 127.0.0.1 11000
+```
+cd <setup_folder>/cute
+cmake -DCMAKE_BUILD_TYPE=Debug .
+make 
+
+#### Start the server and listen on port 11000, and send the current time to the client every 5 seconds
+```
+./sample/server &
+```
+
+#### Start the client and create two TCP connections to receive the current timestamp sent by the server
+```
+./sample/client 127.0.0.1 11000 2
+
+```
 
 
 # enjoy it ^-^

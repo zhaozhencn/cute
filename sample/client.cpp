@@ -106,9 +106,9 @@ private:
 
 i32 main(i32 argc, char* argv[])
 {
-	if (argc < 3)
+	if (argc < 4)
 	{
-		std::cout << "usage: client <host> <port> <num>" << std::endl;
+		std::cout << "usage: client <host> <port> <connect nums>" << std::endl;
 		return 0;
 	}
 
