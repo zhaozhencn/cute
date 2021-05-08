@@ -6,7 +6,7 @@
 i32 cute_socket_acceptor::open(const cute_net_addr & addr)
 {
 	i32 fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (-1 == fd)
+	if (CUTE_INVALID_FD == fd)
 		return CUTE_ERR;	
 
 	sockaddr_in addr_in = addr.get_sockaddr_in();
