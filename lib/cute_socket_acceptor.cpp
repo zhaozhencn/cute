@@ -28,7 +28,7 @@ i32 cute_socket_acceptor::accept(cute_socket& socket)
 	sockaddr_in addr_in = { 0 };
 	socklen_t len = sizeof(addr_in);
 	i32 conn_fd = ::accept(this->fd_, (struct sockaddr*)&addr_in, &len);
-	if (-1 == conn_fd)
+	if (CUTE_INVALID_FD == conn_fd)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return CUTE_NO_MORE_CONNECT;
